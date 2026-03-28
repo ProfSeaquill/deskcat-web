@@ -1,0 +1,238 @@
+{
+  "start": "start",
+  "nodes": {
+    "start": {
+      "id": "start",
+      "question": "How did it go overall?",
+      "answers": [
+        { "label": "Perfect. I was locked in.", "next": "positive_opposite_intro" },
+        { "label": "Mostly great. One snag.", "next": "positive_opposite_intro" },
+        { "label": "Okay. Mixed bag.", "next": "mixed_pick_first" },
+        { "label": "Mostly rough. One bright spot.", "next": "negative_opposite_intro" },
+        { "label": "Terrible. An absolute wreck.", "next": "negative_opposite_intro" }
+      ]
+    },
+    "positive_opposite_intro": {
+      "id": "positive_opposite_intro",
+      "question": "I hate good news. Tell me the bad first. What wasn't working?",
+      "answers": [
+        { "label": "Productivity", "next": "bad_productivity" },
+        { "label": "Mechanics", "next": "bad_mechanics" },
+        { "label": "Creativity", "next": "bad_creativity" },
+        { "label": "Honestly, I can't think of anything!", "next": "positive_circle_back" }
+      ]
+    },
+    "negative_opposite_intro": {
+      "id": "negative_opposite_intro",
+      "question": "Before we spiral, give me one bright spot. What worked anyway?",
+      "answers": [
+        { "label": "Productivity", "next": "negative_circle_back" },
+        { "label": "Mechanics", "next": "negative_circle_back" },
+        { "label": "Creativity", "next": "negative_circle_back" },
+        { "label": "I showed up. That’s all I’ve got.", "next": "negative_circle_back" }
+      ]
+    },
+    "mixed_pick_first": {
+      "id": "mixed_pick_first",
+      "question": "Mixed, huh? Which do you want to sort first?",
+      "answers": [
+        { "label": "The bad first", "next": "bad_side_intro" },
+        { "label": "The good first", "next": "good_side_intro" }
+      ]
+    },
+    "bad_side_intro": {
+      "id": "bad_side_intro",
+      "question": "Fine. What was the biggest problem?",
+      "answers": [
+        { "label": "Productivity", "next": "bad_productivity" },
+        { "label": "Mechanics", "next": "bad_mechanics" },
+        { "label": "Creativity", "next": "bad_creativity" }
+      ]
+    },
+    "good_side_intro": {
+      "id": "good_side_intro",
+      "question": "All right. What carried the session?",
+      "answers": [
+        { "label": "Productivity", "next": "good_productivity" },
+        { "label": "Mechanics", "next": "good_mechanics" },
+        { "label": "Creativity", "next": "good_creativity" }
+      ]
+    },
+    "positive_circle_back": {
+      "id": "positive_circle_back",
+      "question": "Noted. Now let's go back to the positive. What made the session go well overall?",
+      "answers": [
+        { "label": "Productivity", "next": "good_productivity" },
+        { "label": "Mechanics", "next": "good_mechanics" },
+        { "label": "Creativity", "next": "good_creativity" }
+      ]
+    },
+    "negative_circle_back": {
+      "id": "negative_circle_back",
+      "question": "Good. Now back to the crime scene: what hurt the session most overall?",
+      "answers": [
+        { "label": "Productivity", "next": "bad_productivity" },
+        { "label": "Mechanics", "next": "bad_mechanics" },
+        { "label": "Creativity", "next": "bad_creativity" }
+      ]
+    },
+    "bad_productivity": {
+      "id": "bad_productivity",
+      "question": "What hurt productivity most?",
+      "answers": [
+        { "label": "I got distracted (maybe more than once).", "next": "bad_productivity_focus" },
+        { "label": "I didn’t have a clear target", "next": "bad_productivity_focus" },
+        { "label": "I got stuck on one specific issue.", "next": "bad_productivity_focus" },
+        { "label": "I kept editing instead of writing.", "next": "bad_productivity_focus" },
+        { "label": "The environment was bad.", "next": "bad_productivity_focus" },
+        { "label": "My technology wasn't cooperating.", "next": "bad_productivity_focus" }
+      ]
+    },
+    "good_productivity": {
+      "id": "good_productivity",
+      "question": "What helped productivity most?",
+      "answers": [
+        { "label": "I had a clear, achievable goal for the session.", "next": "good_productivity_focus" },
+        { "label": "I maintained focus.", "next": "good_productivity_focus" },
+        { "label": "I was just so excited about the story, I couldn't stop.", "next": "good_productivity_focus" },
+        { "label": "The environment helped.", "next": "good_productivity_focus" },
+        { "label": "The technology I used helped.", "next": "good_productivity_focus" },
+        { "label": "I stopped judging and just drafted--even if it's sloppy.", "next": "good_productivity_focus" }
+      ]
+    },
+    "bad_mechanics": {
+      "id": "bad_mechanics",
+      "question": "Which writing mechanic gave you the most trouble?",
+      "answers": [
+        { "label": "Scene structure", "next": "bad_mechanics_focus" },
+        { "label": "Dialogue", "next": "bad_mechanics_focus" },
+        { "label": "Character motivation", "next": "bad_mechanics_focus" },
+        { "label": "Pacing", "next": "bad_mechanics_focus" },
+        { "label": "Description / setting", "next": "bad_mechanics_focus" },
+        { "label": "Tone / voice", "next": "bad_mechanics_focus" },
+        { "label": "Plot / Transitions", "next": "bad_mechanics_focus" },
+        { "label": "Clarity of stakes / goal", "next": "bad_mechanics_focus" }
+      ]
+    },
+    "good_mechanics": {
+      "id": "good_mechanics",
+      "question": "Which writing mechanic felt strongest?",
+      "answers": [
+        { "label": "Scene structure", "next": "good_mechanics_focus" },
+        { "label": "Dialogue", "next": "good_mechanics_focus" },
+        { "label": "Character motivation", "next": "good_mechanics_focus" },
+        { "label": "Pacing", "next": "good_mechanics_focus" },
+        { "label": "Description / setting", "next": "good_mechanics_focus" },
+        { "label": "Voice / tone", "next": "good_mechanics_focus" },
+        { "label": "Plot / Transitions", "next": "good_mechanics_focus" },
+        { "label": "Clarity of stakes / goal", "next": "good_mechanics_focus" }
+      ]
+    },
+    "bad_creativity": {
+      "id": "bad_creativity",
+      "question": "What went wrong creatively?",
+      "answers": [
+        { "label": "I think the entire premise might be wrong.", "next": "bad_creativity_focus" },
+        { "label": "The ideas didn't feel original.", "next": "bad_creativity_focus" },
+        { "label": "I felt too self-conscious.", "next": "bad_creativity_focus" },
+        { "label": "I was scared other people wouldn't like it.", "next": "bad_creativity_focus" },
+        { "label": "I think I was being too safe.", "next": "bad_creativity_focus" },
+        { "label": "I couldn't connect emotionally with the story.", "next": "bad_creativity_focus" },
+        { "label": "I struggled to balance the different parts of my vision.", "next": "bad_creativity_focus" }
+      ]
+    },
+    "good_creativity": {
+      "id": "good_creativity",
+      "question": "What went right creatively?",
+      "answers": [
+        { "label": "The premise just works.", "next": "good_creativity_focus" },
+        { "label": "The ideas felt original.", "next": "good_creativity_focus" },
+        { "label": "I didn't feel self-conscious at all.", "next": "good_creativity_focus" },
+        { "label": "I was writing for me, not for other people.", "next": "good_creativity_focus" },
+        { "label": "I was emotionally invested.", "next": "good_creativity_focus" },
+        { "label": "I took a big risk and it worked", "next": "good_creativity_focus" },
+        { "label": "All the different parts were fitting together.", "next": "good_creativity_focus" }
+      ]
+    },
+    "bad_productivity_focus": {
+      "id": "bad_productivity_focus",
+      "question": "Well let's focus on one thing to fix for next time.",
+      "answers": [
+        { "label": "Set one concrete target before starting (reveal character, advance plot, evoke setting, etc.)", "next": "end" },
+        { "label": "Avoid distractions (quiet place, headphones, face a wall, etc)", "next": "end" },
+        { "label": "Check technology beforehand.", "next": "end" },
+        { "label": "Avoid editing.", "next": "end" },
+        { "label": "Find or set up a better environment.", "next": "end" },
+        { "label": "Skip over stuck parts and keep writing", "next": "end" }
+      ]
+    },
+    "good_productivity_focus": {
+      "id": "good_productivity_focus",
+      "question": "What do you want to repeat next time?",
+      "answers": [
+        { "label": "Start with a clear target again.", "next": "end" },
+        { "label": "Do whatever helped me keep focus.", "next": "end" },
+        { "label": "Make sure to write when I'm excited to.", "next": "end" },
+        { "label": "Keep the same environment.", "next": "end" },
+        { "label": "Make messy drafts--I can fix it later.", "next": "end" },
+        { "label": "Use the same tech tools.", "next": "end" }
+      ]
+    },
+    "bad_mechanics_focus": {
+      "id": "bad_mechanics_focus",
+      "question": "Pick one craft focus for next time.",
+      "answers": [
+        { "label": "Make sure the scene has a beginning, middle, and end.", "next": "end" },
+        { "label": "Only use dialogue when it can serve multiple functions--character, setting, plot, etc.", "next": "end" },
+        { "label": "Figure out what my characters want and show that through action.", "next": "end" },
+        { "label": "Set up big events beforehand so they feel earned.", "next": "end" },
+        { "label": "Think about how I want the story/narrator to sound.", "next": "end" },
+        { "label": "Figure out what my characters want and show that through action.", "next": "end" },
+        { "label": "Make sure my sentences are clear and evocative.", "next": "end" }
+      ]
+    },
+    "good_mechanics_focus": {
+      "id": "good_mechanics_focus",
+      "question": "What strength do you want to lean on again?",
+      "answers": [
+        { "label": "Build from strong scene structure.", "next": "end" },
+        { "label": "Trust the dialogue more.", "next": "end" },
+        { "label": "Keep following character desire and choice.", "next": "end" },
+        { "label": "Rely on the evocative prose and narration.", "next": "end" },
+        { "label": "Having a plot that moves logically between events.", "next": "end" },
+        { "label": "Keep the same voice and tone.", "next": "end" }
+      ]
+    },
+    "bad_creativity_focus": {
+      "id": "bad_creativity_focus",
+      "question": "Pick one creative focus for next time.",
+      "answers": [
+        { "label": "Simplify the premise--clarity is everything.", "next": "end" },
+        { "label": "Silence my inner critic.", "next": "end" },
+        { "label": "Trust the process--if it matters to me, it'll matter to others.", "next": "end" },
+        { "label": "Take risks--go big first, then worry about how to make it work later.", "next": "end" },
+        { "label": "Figure out why this story matters to me.", "next": "end" }
+      ]
+    },
+    "good_creativity_focus": {
+      "id": "good_creativity_focus",
+      "question": "What creative strength do you want to protect next time?",
+      "answers": [
+        { "label": "Let the story explore every corner of this premise.", "next": "end" },
+        { "label": "Give myself room to let my ideas shine.", "next": "end" },
+        { "label": "Keep in this headspace--I'm at my best when I block out other concerns.", "next": "end" },
+        { "label": "Good art comes from risks--keep taking them!.", "next": "end" },
+        { "label": "Let me emotional response to the story guide me.", "next": "end" },
+        { "label": "Trust my weirdness; trust the story's weirdness.", "next": "end" }
+      ]
+    },
+    "end": {
+      "id": "end",
+      "question": "Well that was fun. I'm gonna take a nap. Want to save this session?",
+      "answers": [
+        { "label": "Save", "next": null },
+        { "label": "Not now", "next": null }
+      ]
+    }
+  }
+}
