@@ -3,6 +3,7 @@ export type DeskCatBackground =
   | "default"
   | "green"
   | "cabin"
+  | "zebra"
   | "lavender"
   | "orange";
 
@@ -176,6 +177,31 @@ const CABIN_SURFACE_THEME = {
   shadow: "rgba(0, 0, 0, 0.36)"
 } as const;
 
+const ZEBRA_SURFACE_THEME = {
+  surface: "rgba(255, 250, 242, 0.84)",
+  surfaceStrong: "rgba(255, 253, 248, 0.98)",
+  subsurface: "rgba(245, 238, 226, 0.96)",
+  surfaceBorder: "rgba(26, 26, 26, 0.16)",
+  textPrimary: "#19150f",
+  textSecondary: "rgba(25, 21, 15, 0.74)",
+  textTertiary: "rgba(25, 21, 15, 0.54)",
+  link: "#243f5f",
+  linkHover: "#14273c",
+  buttonPrimaryBackground: "#111111",
+  buttonPrimaryText: "#fff9ef",
+  buttonPrimaryBorder: "rgba(17, 17, 17, 0.18)",
+  buttonSecondaryBackground: "rgba(255, 252, 247, 0.96)",
+  buttonSecondaryText: "#1f1913",
+  buttonSecondaryBorder: "rgba(26, 26, 26, 0.14)",
+  inputBackground: "#fffdf8",
+  inputText: "#19150f",
+  inputBorder: "rgba(26, 26, 26, 0.16)",
+  bubbleBackground: "#fff8ee",
+  bubbleBorder: "rgba(26, 26, 26, 0.12)",
+  bubbleText: "#19150f",
+  shadow: "rgba(17, 17, 17, 0.12)"
+} as const;
+
 const BACKGROUND_THEME_MAP: Record<DeskCatBackground, BackgroundTheme> = {
   black: {
     ...DARK_SURFACE_THEME,
@@ -221,6 +247,18 @@ const BACKGROUND_THEME_MAP: Record<DeskCatBackground, BackgroundTheme> = {
     border: "rgba(214, 171, 117, 0.34)",
     swatches: ["#1a0f0a", "#785334", "#d9a868"]
   },
+  zebra: {
+    ...ZEBRA_SURFACE_THEME,
+    id: "zebra",
+    label: "Zebra Print",
+    description: "Black-and-ivory stripes for a louder, fashion-forward desktop.",
+    background:
+      "radial-gradient(circle at top, rgba(255, 255, 255, 0.24) 0%, rgba(255, 255, 255, 0) 42%), repeating-linear-gradient(115deg, #131313 0 18px, #faf3e8 18px 44px, #252525 44px 63px, #ece3d4 63px 96px)",
+    foreground: "#19150f",
+    accent: "#111111",
+    border: "rgba(26, 26, 26, 0.24)",
+    swatches: ["#131313", "#faf3e8", "#243f5f"]
+  },
   lavender: {
     ...LIGHT_SURFACE_THEME,
     id: "lavender",
@@ -250,6 +288,7 @@ export const BACKGROUND_OPTIONS = [
   BACKGROUND_THEME_MAP.default,
   BACKGROUND_THEME_MAP.green,
   BACKGROUND_THEME_MAP.cabin,
+  BACKGROUND_THEME_MAP.zebra,
   BACKGROUND_THEME_MAP.lavender,
   BACKGROUND_THEME_MAP.orange
 ];
@@ -259,6 +298,7 @@ function normalizeBackground(value: unknown): DeskCatBackground {
     case "black":
     case "green":
     case "cabin":
+    case "zebra":
     case "lavender":
     case "orange":
     case "default":
