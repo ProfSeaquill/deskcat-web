@@ -5,6 +5,7 @@ export type DeskCatBackground =
   | "lime"
   | "cabin"
   | "lavender"
+  | "polka"
   | "rose"
   | "orange";
 
@@ -228,6 +229,31 @@ const ROSE_SURFACE_THEME = {
   shadow: "rgba(122, 56, 69, 0.11)"
 } as const;
 
+const POLKA_SURFACE_THEME = {
+  surface: "rgba(255, 248, 251, 0.86)",
+  surfaceStrong: "rgba(255, 252, 253, 0.98)",
+  subsurface: "rgba(252, 236, 242, 0.96)",
+  surfaceBorder: "rgba(220, 150, 177, 0.22)",
+  textPrimary: "#402432",
+  textSecondary: "rgba(64, 36, 50, 0.74)",
+  textTertiary: "rgba(64, 36, 50, 0.54)",
+  link: "#a55476",
+  linkHover: "#843958",
+  buttonPrimaryBackground: "#df8eb1",
+  buttonPrimaryText: "#2b1220",
+  buttonPrimaryBorder: "rgba(223, 142, 177, 0.42)",
+  buttonSecondaryBackground: "rgba(255, 251, 252, 0.96)",
+  buttonSecondaryText: "#8a4260",
+  buttonSecondaryBorder: "rgba(220, 150, 177, 0.24)",
+  inputBackground: "#fffdfd",
+  inputText: "#402432",
+  inputBorder: "rgba(220, 150, 177, 0.22)",
+  bubbleBackground: "#fff7fa",
+  bubbleBorder: "rgba(220, 150, 177, 0.18)",
+  bubbleText: "#402432",
+  shadow: "rgba(138, 66, 96, 0.11)"
+} as const;
+
 const BACKGROUND_THEME_MAP: Record<DeskCatBackground, BackgroundTheme> = {
   black: {
     ...DARK_SURFACE_THEME,
@@ -295,6 +321,18 @@ const BACKGROUND_THEME_MAP: Record<DeskCatBackground, BackgroundTheme> = {
     border: "rgba(181, 151, 243, 0.4)",
     swatches: ["#fdf9ff", "#e9dcff", "#b597f3"]
   },
+  polka: {
+    ...POLKA_SURFACE_THEME,
+    id: "polka",
+    label: "Polka Dot",
+    description: "A soft blush backdrop with playful pink dots and a sweeter feel.",
+    background:
+      "radial-gradient(circle, rgba(227, 145, 180, 0.9) 0 8px, transparent 8.5px) 0 0 / 88px 88px, radial-gradient(circle, rgba(244, 190, 211, 0.92) 0 6px, transparent 6.5px) 44px 44px / 88px 88px, linear-gradient(180deg, #fffafd 0%, #ffeef5 100%)",
+    foreground: "#402432",
+    accent: "#df8eb1",
+    border: "rgba(220, 150, 177, 0.3)",
+    swatches: ["#fffafd", "#f8d6e4", "#df8eb1"]
+  },
   rose: {
     ...ROSE_SURFACE_THEME,
     id: "rose",
@@ -326,6 +364,7 @@ export const BACKGROUND_OPTIONS = [
   BACKGROUND_THEME_MAP.lime,
   BACKGROUND_THEME_MAP.cabin,
   BACKGROUND_THEME_MAP.lavender,
+  BACKGROUND_THEME_MAP.polka,
   BACKGROUND_THEME_MAP.rose,
   BACKGROUND_THEME_MAP.orange
 ];
@@ -337,6 +376,7 @@ function normalizeBackground(value: unknown): DeskCatBackground {
     case "lime":
     case "cabin":
     case "lavender":
+    case "polka":
     case "rose":
     case "orange":
     case "default":
