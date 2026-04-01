@@ -251,9 +251,9 @@ const BACKGROUND_THEME_MAP: Record<DeskCatBackground, BackgroundTheme> = {
     ...ZEBRA_SURFACE_THEME,
     id: "zebra",
     label: "Zebra Print",
-    description: "Black-and-ivory stripes for a louder, fashion-forward desktop.",
+    description: "Long, drifting zebra stripes over a pale ivory backdrop.",
     background:
-      "radial-gradient(circle at top, rgba(255, 255, 255, 0.24) 0%, rgba(255, 255, 255, 0) 42%), repeating-linear-gradient(115deg, #131313 0 18px, #faf3e8 18px 44px, #252525 44px 63px, #ece3d4 63px 96px)",
+      "radial-gradient(68% 12% at 16% 11%, rgba(18, 18, 18, 0.96) 0 48%, transparent 49%), radial-gradient(60% 11% at 58% 14%, rgba(24, 24, 24, 0.94) 0 46%, transparent 47%), radial-gradient(54% 10% at 90% 10%, rgba(16, 16, 16, 0.92) 0 42%, transparent 43%), radial-gradient(74% 13% at 8% 32%, rgba(20, 20, 20, 0.97) 0 44%, transparent 45%), radial-gradient(56% 11% at 48% 36%, rgba(27, 27, 27, 0.92) 0 45%, transparent 46%), radial-gradient(66% 12% at 92% 31%, rgba(14, 14, 14, 0.94) 0 40%, transparent 41%), radial-gradient(62% 11% at 22% 56%, rgba(18, 18, 18, 0.95) 0 45%, transparent 46%), radial-gradient(58% 10% at 72% 60%, rgba(22, 22, 22, 0.92) 0 43%, transparent 44%), radial-gradient(70% 12% at 14% 82%, rgba(16, 16, 16, 0.94) 0 43%, transparent 44%), radial-gradient(56% 10% at 60% 86%, rgba(24, 24, 24, 0.9) 0 41%, transparent 42%), linear-gradient(180deg, #fffdf9 0%, #f6efe5 100%)",
     foreground: "#19150f",
     accent: "#111111",
     border: "rgba(26, 26, 26, 0.24)",
