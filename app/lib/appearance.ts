@@ -4,7 +4,6 @@ export type DeskCatBackground =
   | "green"
   | "lime"
   | "cabin"
-  | "zebra"
   | "lavender"
   | "rose"
   | "orange";
@@ -179,31 +178,6 @@ const CABIN_SURFACE_THEME = {
   shadow: "rgba(0, 0, 0, 0.36)"
 } as const;
 
-const ZEBRA_SURFACE_THEME = {
-  surface: "rgba(255, 250, 242, 0.84)",
-  surfaceStrong: "rgba(255, 253, 248, 0.98)",
-  subsurface: "rgba(245, 238, 226, 0.96)",
-  surfaceBorder: "rgba(26, 26, 26, 0.16)",
-  textPrimary: "#19150f",
-  textSecondary: "rgba(25, 21, 15, 0.74)",
-  textTertiary: "rgba(25, 21, 15, 0.54)",
-  link: "#243f5f",
-  linkHover: "#14273c",
-  buttonPrimaryBackground: "#111111",
-  buttonPrimaryText: "#fff9ef",
-  buttonPrimaryBorder: "rgba(17, 17, 17, 0.18)",
-  buttonSecondaryBackground: "rgba(255, 252, 247, 0.96)",
-  buttonSecondaryText: "#1f1913",
-  buttonSecondaryBorder: "rgba(26, 26, 26, 0.14)",
-  inputBackground: "#fffdf8",
-  inputText: "#19150f",
-  inputBorder: "rgba(26, 26, 26, 0.16)",
-  bubbleBackground: "#fff8ee",
-  bubbleBorder: "rgba(26, 26, 26, 0.12)",
-  bubbleText: "#19150f",
-  shadow: "rgba(17, 17, 17, 0.12)"
-} as const;
-
 const LIME_SURFACE_THEME = {
   surface: "rgba(251, 255, 242, 0.84)",
   surfaceStrong: "rgba(253, 255, 248, 0.98)",
@@ -310,18 +284,6 @@ const BACKGROUND_THEME_MAP: Record<DeskCatBackground, BackgroundTheme> = {
     border: "rgba(214, 171, 117, 0.34)",
     swatches: ["#1a0f0a", "#785334", "#d9a868"]
   },
-  zebra: {
-    ...ZEBRA_SURFACE_THEME,
-    id: "zebra",
-    label: "Zebra Print",
-    description: "Fingerprint-like zebra ridges stretched across a pale ivory backdrop.",
-    background:
-      "repeating-radial-gradient(ellipse 170% 32% at 10% 8%, rgba(17, 17, 17, 0.97) 0 11px, transparent 11px 25px, rgba(23, 23, 23, 0.95) 25px 39px, transparent 39px 58px, rgba(14, 14, 14, 0.94) 58px 73px, transparent 73px 95px), repeating-radial-gradient(ellipse 186% 30% at 86% 24%, rgba(20, 20, 20, 0.96) 0 10px, transparent 10px 22px, rgba(11, 11, 11, 0.95) 22px 38px, transparent 38px 54px, rgba(24, 24, 24, 0.92) 54px 72px, transparent 72px 94px), repeating-radial-gradient(ellipse 176% 35% at 18% 49%, rgba(18, 18, 18, 0.96) 0 13px, transparent 13px 28px, rgba(26, 26, 26, 0.92) 28px 41px, transparent 41px 60px, rgba(13, 13, 13, 0.92) 60px 79px, transparent 79px 100px), repeating-radial-gradient(ellipse 194% 31% at 80% 72%, rgba(16, 16, 16, 0.95) 0 9px, transparent 9px 23px, rgba(24, 24, 24, 0.94) 23px 40px, transparent 40px 57px, rgba(12, 12, 12, 0.9) 57px 71px, transparent 71px 94px), repeating-radial-gradient(ellipse 162% 28% at 32% 92%, rgba(22, 22, 22, 0.94) 0 12px, transparent 12px 26px, rgba(15, 15, 15, 0.92) 26px 43px, transparent 43px 59px, rgba(25, 25, 25, 0.88) 59px 76px, transparent 76px 98px), linear-gradient(180deg, #fffefb 0%, #f5eee3 100%)",
-    foreground: "#19150f",
-    accent: "#111111",
-    border: "rgba(26, 26, 26, 0.24)",
-    swatches: ["#131313", "#faf3e8", "#243f5f"]
-  },
   lavender: {
     ...LIGHT_SURFACE_THEME,
     id: "lavender",
@@ -363,7 +325,6 @@ export const BACKGROUND_OPTIONS = [
   BACKGROUND_THEME_MAP.green,
   BACKGROUND_THEME_MAP.lime,
   BACKGROUND_THEME_MAP.cabin,
-  BACKGROUND_THEME_MAP.zebra,
   BACKGROUND_THEME_MAP.lavender,
   BACKGROUND_THEME_MAP.rose,
   BACKGROUND_THEME_MAP.orange
@@ -375,7 +336,6 @@ function normalizeBackground(value: unknown): DeskCatBackground {
     case "green":
     case "lime":
     case "cabin":
-    case "zebra":
     case "lavender":
     case "rose":
     case "orange":
