@@ -1,30 +1,12 @@
 "use client";
 
-import Image, { type StaticImageData } from "next/image";
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { usePathname } from "next/navigation";
-import catPlaying from "@/art/Images/cat/playing.png";
-import catReading from "@/art/Images/cat/reading.png";
-import catSleeping from "@/art/Images/cat/sleeping.png";
-import catStartled from "@/art/Images/cat/startled.png";
-import catWalking from "@/art/Images/cat/walking.png";
 import { loadLastReaction } from "../lib/storage";
+import { APPEARANCE_EVENT, loadAppearanceSettings } from "../lib/appearance";
+import { DESKCAT_POSES } from "../lib/deskcatSprite";
+import DeskCatSprite from "./DeskCatSprite";
 import SpeechBubble from "./SpeechBubble";
-
-type Pose = {
-  src: StaticImageData;
-  scale: number;
-  x: number;
-  y: number;
-};
-
-const POSES: readonly Pose[] = [
-  { src: catPlaying, scale: 1.08, x: -6, y: 8 },
-  { src: catReading, scale: 1.04, x: 0, y: 6 },
-  { src: catSleeping, scale: 1.1, x: 0, y: 10 },
-  { src: catStartled, scale: 0.98, x: -2, y: 4 },
-  { src: catWalking, scale: 1.06, x: -2, y: 8 }
-];
 
 const PLATFORM_POSITIONS = [
   { name: "far-left", leftPercent: 22 },
@@ -47,6 +29,16 @@ function hashString(s: string) {
 function subscribeToReactionStore(onStoreChange: () => void) {
   window.addEventListener("storage", onStoreChange);
   return () => window.removeEventListener("storage", onStoreChange);
+}
+
+function subscribeToAppearanceStore(onStoreChange: () => void) {
+  window.addEventListener(APPEARANCE_EVENT, onStoreChange);
+  window.addEventListener("storage", onStoreChange);
+
+  return () => {
+    window.removeEventListener(APPEARANCE_EVENT, onStoreChange);
+    window.removeEventListener("storage", onStoreChange);
+  };
 }
 
 export default function CatStage() {
@@ -80,6 +72,11 @@ export default function CatStage() {
   );
 
   const message = isReflect ? previewMessage : lastMessage;
+  const cosmeticId = useSyncExternalStore(
+    subscribeToAppearanceStore,
+    () => loadAppearanceSettings().cosmetic,
+    () => loadAppearanceSettings().cosmetic
+  );
 
   const { slot, pose } = useMemo(() => {
     // Include pathname + roll so it changes every reroll AND differs by page
@@ -90,7 +87,7 @@ export default function CatStage() {
 
     return {
       slot: PLATFORM_POSITIONS[hPos % PLATFORM_POSITIONS.length],
-      pose: POSES[hPose % POSES.length]
+      pose: DESKCAT_POSES[hPose % DESKCAT_POSES.length]
     };
   }, [pathname, roll]);
 
@@ -122,18 +119,12 @@ export default function CatStage() {
           }}
         >
           <div className="relative h-[184px] w-[184px] drop-shadow-[0_10px_18px_rgba(0,0,0,0.18)] opacity-95">
-            <Image
-              src={pose.src}
+            <DeskCatSprite
+              poseId={pose.id}
+              cosmeticId={cosmeticId}
               alt="DeskCat"
-              fill
-              sizes="184px"
-              placeholder="blur"
               priority
-              className="object-contain"
-              style={{
-                transform: `translate(${pose.x}px, ${pose.y}px) scale(${pose.scale})`,
-                transformOrigin: "50% 100%"
-              }}
+              sizes="184px"
             />
           </div>
         </div>

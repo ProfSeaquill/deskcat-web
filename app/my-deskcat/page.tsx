@@ -1,10 +1,8 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import deskcatLogo from "@/art/Images/deskcat-logo.png";
 import {
   BACKGROUND_OPTIONS,
   DEFAULT_APPEARANCE_SETTINGS,
@@ -14,6 +12,7 @@ import {
   type DeskCatBackground
 } from "../lib/appearance";
 import { useIsClient } from "../lib/useIsClient";
+import DeskCatSprite from "../components/DeskCatSprite";
 
 export default function MyDeskCatPage() {
   const isClient = useIsClient();
@@ -28,7 +27,7 @@ export default function MyDeskCatPage() {
       >
         <div className="mx-auto w-full max-w-5xl space-y-6">
           <div>
-            <p className="theme-text-tertiary text-sm font-medium uppercase tracking-[0.2em]">
+            <p className="theme-eyebrow-badge w-fit rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em]">
               Appearance Lab
             </p>
             <h1 className="mt-2 text-4xl font-semibold tracking-tight">My DeskCat</h1>
@@ -58,7 +57,10 @@ function MyDeskCatEditor() {
   const hasChanges = draftBackground !== savedBackground;
 
   function applyChanges() {
-    saveAppearanceSettings({ background: draftBackground });
+    saveAppearanceSettings({
+      background: draftBackground,
+      cosmetic: DEFAULT_APPEARANCE_SETTINGS.cosmetic
+    });
     setSavedBackground(draftBackground);
     router.push("/");
   }
@@ -70,7 +72,7 @@ function MyDeskCatEditor() {
     >
       <div className="mx-auto w-full max-w-5xl space-y-6">
         <div>
-          <p className="theme-text-tertiary text-sm font-medium uppercase tracking-[0.2em]">
+          <p className="theme-eyebrow-badge w-fit rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em]">
             Appearance Lab
           </p>
           <h1 className="mt-2 text-4xl font-semibold tracking-tight">My DeskCat</h1>
@@ -170,7 +172,7 @@ function MyDeskCatEditor() {
                 </p>
                 <h3 className="mt-3 text-2xl font-semibold">DeskCat</h3>
                 <p className="mt-2 text-sm" style={{ color: previewTheme.textSecondary }}>
-                  Your selected background will show up here after you apply it.
+                  This preview updates immediately while you try backgrounds.
                 </p>
 
                 <div
@@ -180,13 +182,9 @@ function MyDeskCatEditor() {
                     borderColor: previewTheme.surfaceBorder
                   }}
                 >
-                  <Image
-                    src={deskcatLogo}
-                    alt="DeskCat logo preview"
-                    width={180}
-                    height={180}
-                    className="h-auto w-[10.5rem] drop-shadow-[0_12px_24px_rgba(0,0,0,0.22)]"
-                  />
+                  <div className="h-[180px] w-[180px] drop-shadow-[0_12px_24px_rgba(0,0,0,0.22)]">
+                    <DeskCatSprite poseId="reading" alt="DeskCat preview" sizes="180px" />
+                  </div>
                 </div>
 
                 <div
@@ -218,7 +216,8 @@ function MyDeskCatEditor() {
           <section className="theme-surface rounded-[32px] border p-6 backdrop-blur">
             <h2 className="theme-text-primary text-2xl font-semibold">Cosmetics</h2>
             <p className="theme-text-secondary mt-3 text-sm">
-              Hats, collars, accessories, and other cat-specific unlocks can live here next.
+              Cosmetics are temporarily hidden while we sort out a better per-pose attachment
+              system.
             </p>
           </section>
 

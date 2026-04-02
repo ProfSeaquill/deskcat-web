@@ -1,3 +1,9 @@
+import {
+  DEFAULT_DESKCAT_COSMETIC_ID,
+  isDeskCatCosmeticId,
+  type DeskCatCosmeticId
+} from "./deskcatSprite";
+
 export type DeskCatBackground =
   | "black"
   | "default"
@@ -11,6 +17,7 @@ export type DeskCatBackground =
 
 export type AppearanceSettings = {
   background: DeskCatBackground;
+  cosmetic: DeskCatCosmeticId;
 };
 
 export type BackgroundTheme = {
@@ -49,7 +56,8 @@ export type BackgroundTheme = {
 export const APPEARANCE_EVENT = "deskcat.appearance.change";
 
 export const DEFAULT_APPEARANCE_SETTINGS: AppearanceSettings = {
-  background: "black"
+  background: "black",
+  cosmetic: DEFAULT_DESKCAT_COSMETIC_ID
 };
 
 const APPEARANCE_KEY = "deskcat.appearance.v1";
@@ -386,6 +394,10 @@ function normalizeBackground(value: unknown): DeskCatBackground {
   }
 }
 
+function normalizeCosmetic(value: unknown): DeskCatCosmeticId {
+  return isDeskCatCosmeticId(value) ? value : DEFAULT_APPEARANCE_SETTINGS.cosmetic;
+}
+
 export function getBackgroundTheme(background: DeskCatBackground) {
   return BACKGROUND_THEME_MAP[background] ?? BACKGROUND_THEME_MAP.black;
 }
@@ -401,7 +413,8 @@ export function loadAppearanceSettings(): AppearanceSettings {
 
     const parsed = JSON.parse(raw);
     return {
-      background: normalizeBackground(parsed?.background)
+      background: normalizeBackground(parsed?.background),
+      cosmetic: normalizeCosmetic(parsed?.cosmetic)
     };
   } catch {
     return DEFAULT_APPEARANCE_SETTINGS;
@@ -412,7 +425,8 @@ export function saveAppearanceSettings(settings: AppearanceSettings) {
   if (typeof window === "undefined") return;
 
   const normalized: AppearanceSettings = {
-    background: normalizeBackground(settings.background)
+    background: normalizeBackground(settings.background),
+    cosmetic: normalizeCosmetic(settings.cosmetic)
   };
 
   localStorage.setItem(APPEARANCE_KEY, JSON.stringify(normalized));

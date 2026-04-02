@@ -78,6 +78,16 @@ body {
   color: var(--theme-text-tertiary);
 }
 
+.theme-eyebrow-badge {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--theme-surface-border);
+  background: var(--theme-surface);
+  color: var(--theme-text-secondary);
+  box-shadow: 0 12px 32px var(--theme-surface-shadow);
+  backdrop-filter: blur(12px);
+}
+
 .theme-link {
   color: var(--theme-link);
 }
