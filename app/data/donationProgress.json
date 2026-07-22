@@ -1,0 +1,17 @@
+{
+  "title": "Buy DeskCat food",
+  "actionLabel": "Donate",
+  "currencyCode": "USD",
+  "goalAmount": 300,
+  "currentAmount": 186,
+  "rewards": [
+    { "label": "Reward 1", "amount": 100, "cosmeticId": "red-bowtie" },
+    { "label": "Reward 2", "amount": 200, "cosmeticId": "red-top-hat" },
+    {
+      "label": "Reward 3",
+      "amount": 300,
+      "highlight": true,
+      "cosmeticId": "red-glasses"
+    }
+  ]
+}

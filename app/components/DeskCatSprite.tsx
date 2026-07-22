@@ -1,59 +1,81 @@
 "use client";
 
 import Image from "next/image";
+import type { ReactNode } from "react";
 import {
-  getDeskCatCosmetic,
+  DESKCAT_COSMETIC_CATEGORIES,
+  DEFAULT_DESKCAT_COSMETICS,
+  NONE_DESKCAT_COSMETIC_ID,
   getDeskCatPose,
-  DEFAULT_DESKCAT_COSMETIC_ID,
-  type DeskCatCosmeticId,
+  getDeskCatCosmetic,
+  type DeskCatEquippedCosmetics,
   type DeskCatPoseId
 } from "../lib/deskcatSprite";
+import type { DeskCatPoseLayout } from "../lib/deskcatAnchors";
 
 type DeskCatSpriteProps = {
   poseId: DeskCatPoseId;
-  cosmeticId?: DeskCatCosmeticId;
+  cosmetics?: DeskCatEquippedCosmetics;
   alt: string;
   priority?: boolean;
   sizes?: string;
+  layoutOverride?: DeskCatPoseLayout;
+  applyStageTransform?: boolean;
+  overlay?: ReactNode;
 };
 
 export default function DeskCatSprite({
   poseId,
-  cosmeticId = DEFAULT_DESKCAT_COSMETIC_ID,
+  cosmetics = DEFAULT_DESKCAT_COSMETICS,
   alt,
   priority = false,
-  sizes = "184px"
+  sizes = "184px",
+  layoutOverride,
+  applyStageTransform = true,
+  overlay
 }: DeskCatSpriteProps) {
   const pose = getDeskCatPose(poseId);
-  const cosmetic = getDeskCatCosmetic(cosmeticId);
-  const anchor = cosmetic.slot ? pose.anchors[cosmetic.slot] : null;
+  const layout = layoutOverride ?? pose;
+  const equippedCosmetics = DESKCAT_COSMETIC_CATEGORIES.flatMap(({ id: category }) => {
+    const selection = cosmetics[category];
+    if (selection === NONE_DESKCAT_COSMETIC_ID) return [];
+
+    const cosmetic = getDeskCatCosmetic(selection);
+    const anchor = layout.anchors[cosmetic.anchorSlot];
+    const asset = cosmetic.poseRenderSrc?.[pose.id] ?? cosmetic.renderSrc;
+    return anchor && asset ? [{ cosmetic, anchor, asset }] : [];
+  });
+
+  const stageTransform = applyStageTransform
+    ? `translate(${layout.stage.x}px, ${layout.stage.y}px) scale(${layout.stage.scale})`
+    : undefined;
 
   return (
-    <div className="relative h-full w-full">
+    <div className="relative isolate h-full w-full">
       <div
         className="absolute inset-0"
-        style={{
-          transform: `translate(${pose.stage.x}px, ${pose.stage.y}px) scale(${pose.stage.scale})`,
-          transformOrigin: "50% 100%"
-        }}
+        style={{ transform: stageTransform, transformOrigin: "50% 100%" }}
       >
         <Image
           src={pose.src}
           alt={alt}
           fill
           sizes={sizes}
-          placeholder="blur"
           priority={priority}
-          className="object-contain"
+          placeholder="blur"
+          className="pointer-events-none object-contain"
+          style={{ zIndex: 0 }}
         />
 
-        {cosmetic.slot && anchor && (
+        {equippedCosmetics.map(({ cosmetic, anchor, asset }) => (
           <Image
-            src={cosmetic.assetPath}
+            key={cosmetic.id}
+            src={asset}
             alt=""
             aria-hidden="true"
-            width={cosmetic.assetWidth}
-            height={cosmetic.assetHeight}
+            width={asset.width}
+            height={asset.height}
+            sizes={sizes}
             className="pointer-events-none absolute h-auto"
             style={{
               left: `${(anchor.x + cosmetic.offsetX) * 100}%`,
@@ -63,7 +85,9 @@ export default function DeskCatSprite({
               zIndex: anchor.zIndex
             }}
           />
-        )}
+        ))}
+
+        {overlay}
       </div>
     </div>
   );

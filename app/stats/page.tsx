@@ -3,18 +3,10 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import CatStage from "../components/CatStage";
-import { getAreaLabel, getOutcomeLabel } from "../lib/reflection";
+import SessionHistoryList from "../components/SessionHistoryList";
+import { getOutcomeLabel } from "../lib/reflection";
 import { loadSessions } from "../lib/storage";
 import { useIsClient } from "../lib/useIsClient";
-
-function formatDate(iso: string) {
-  try {
-    const d = new Date(iso);
-    return d.toLocaleString();
-  } catch {
-    return iso;
-  }
-}
 
 export default function StatsPage() {
   const isClient = useIsClient();
@@ -60,54 +52,31 @@ export default function StatsPage() {
 
         <div className="theme-surface rounded-2xl border p-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold">Recent sessions</h2>
-            <button
-              className="theme-button-secondary theme-hover-highlight rounded-xl border px-3 py-1 text-sm transition"
-              onClick={() => setRefreshTick((tick) => tick + 1)}
-            >
-              Refresh
-            </button>
+            <h2 className="text-lg font-semibold">Last 5 sessions</h2>
+            <div className="flex items-center gap-2">
+              {sessions.length > 5 && (
+                <Link
+                  href="/stats/sessions"
+                  className="theme-button-secondary theme-hover-highlight inline-flex items-center justify-center rounded-xl border px-3 py-1 text-sm transition"
+                >
+                  View more
+                </Link>
+              )}
+
+              <button
+                className="theme-button-secondary theme-hover-highlight rounded-xl border px-3 py-1 text-sm transition"
+                onClick={() => setRefreshTick((tick) => tick + 1)}
+              >
+                Refresh
+              </button>
+            </div>
           </div>
 
-          {sessions.length === 0 ? (
-            <p className="theme-text-secondary mt-3">No saved sessions yet.</p>
-          ) : (
-            <ul className="mt-3 space-y-3">
-              {sessions.slice(0, 10).map((s) => (
-                <li key={s.id} className="theme-subsurface rounded-xl border p-3">
-                  <div className="flex flex-wrap items-baseline justify-between gap-2">
-                    <div className="font-medium">
-                      {s.sessionType} • {getOutcomeLabel(s.outcome)}
-                    </div>
-                    <div className="theme-text-secondary text-sm">{formatDate(s.createdAt)}</div>
-                  </div>
-
-                  {getAreaLabel(s.focusArea) && (
-                    <div className="theme-text-secondary mt-1 text-sm">
-                      Focus area: <span className="font-medium">{getAreaLabel(s.focusArea)}</span>
-                    </div>
-                  )}
-
-                  <div className="theme-text-secondary mt-1 text-sm">
-                    Next focus: <span className="font-medium">{s.nextFocus ?? "—"}</span>
-                  </div>
-
-                  <details className="mt-2">
-                    <summary className="theme-text-secondary cursor-pointer text-sm">
-                      Show reflection path
-                    </summary>
-                    <ol className="theme-text-secondary mt-2 list-decimal space-y-1 pl-5 text-sm">
-                      {s.reflectionPath.map((p, i) => (
-                        <li key={i}>
-                          <span className="font-medium">{p.nodeId}</span>: {p.answer}
-                        </li>
-                      ))}
-                    </ol>
-                  </details>
-                </li>
-              ))}
-            </ul>
-          )}
+          <SessionHistoryList
+            sessions={sessions}
+            emptyMessage="No saved sessions yet."
+            limit={5}
+          />
         </div>
       </div>
     </main>

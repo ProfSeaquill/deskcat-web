@@ -1,0 +1,227 @@
+{
+  "version": 1,
+  "poses": {
+    "logo": {
+      "stage": {
+        "scale": 1,
+        "x": 0,
+        "y": 0
+      },
+      "anchors": {
+        "eyes": {
+          "x": 0.53,
+          "y": 0.365,
+          "width": 0.43,
+          "rotation": 0,
+          "zIndex": 5
+        },
+        "head": {
+          "x": 0.53,
+          "y": 0.225,
+          "width": 0.31,
+          "rotation": 0,
+          "zIndex": 4
+        },
+        "neck": {
+          "x": 0.53,
+          "y": 0.59,
+          "width": 0.23,
+          "rotation": 0,
+          "zIndex": 5
+        },
+        "tail": {
+          "x": 0.27,
+          "y": 0.61,
+          "width": 0.24,
+          "rotation": -18,
+          "zIndex": -1
+        }
+      }
+    },
+    "playing": {
+      "stage": {
+        "scale": 1.08,
+        "x": -6,
+        "y": 8
+      },
+      "anchors": {
+        "eyes": {
+          "x": 0.75,
+          "y": 0.38,
+          "width": 0.29,
+          "rotation": 10,
+          "zIndex": 4
+        },
+        "head": {
+          "x": 0.76,
+          "y": 0.31,
+          "width": 0.26,
+          "rotation": 12,
+          "zIndex": 3
+        },
+        "neck": {
+          "x": 0.63,
+          "y": 0.57,
+          "width": 0.24,
+          "rotation": -18,
+          "zIndex": 4
+        },
+        "tail": {
+          "x": 0.23,
+          "y": 0.57,
+          "width": 0.27,
+          "rotation": -40,
+          "zIndex": -1
+        }
+      }
+    },
+    "reading": {
+      "stage": {
+        "scale": 1.04,
+        "x": 0,
+        "y": 6
+      },
+      "anchors": {
+        "eyes": {
+          "x": 0.5,
+          "y": 0.35,
+          "width": 0.39,
+          "rotation": 0,
+          "zIndex": 4
+        },
+        "head": {
+          "x": 0.5,
+          "y": 0.23,
+          "width": 0.28,
+          "rotation": 0,
+          "zIndex": 3
+        },
+        "neck": {
+          "x": 0.5,
+          "y": 0.55,
+          "width": 0.22,
+          "rotation": 0,
+          "zIndex": 4
+        },
+        "tail": {
+          "x": 0.28,
+          "y": 0.56,
+          "width": 0.24,
+          "rotation": -16,
+          "zIndex": -1
+        }
+      }
+    },
+    "sleeping": {
+      "stage": {
+        "scale": 1.1,
+        "x": 0,
+        "y": 10
+      },
+      "anchors": {
+        "eyes": {
+          "x": 0.71,
+          "y": 0.42,
+          "width": 0.28,
+          "rotation": 8,
+          "zIndex": 4
+        },
+        "head": {
+          "x": 0.77,
+          "y": 0.32,
+          "width": 0.29,
+          "rotation": 4,
+          "zIndex": 3
+        },
+        "neck": {
+          "x": 0.68,
+          "y": 0.57,
+          "width": 0.21,
+          "rotation": -6,
+          "zIndex": 4
+        },
+        "tail": {
+          "x": 0.24,
+          "y": 0.61,
+          "width": 0.24,
+          "rotation": -12,
+          "zIndex": -1
+        }
+      }
+    },
+    "sitting": {
+      "stage": {
+        "scale": 1.02,
+        "x": 0,
+        "y": 8
+      },
+      "anchors": {
+        "eyes": {
+          "x": 0.53,
+          "y": 0.365,
+          "width": 0.38,
+          "rotation": 0,
+          "zIndex": 4
+        },
+        "head": {
+          "x": 0.53,
+          "y": 0.22,
+          "width": 0.3,
+          "rotation": 0,
+          "zIndex": 3
+        },
+        "neck": {
+          "x": 0.53,
+          "y": 0.58,
+          "width": 0.23,
+          "rotation": 0,
+          "zIndex": 4
+        },
+        "tail": {
+          "x": 0.3,
+          "y": 0.6,
+          "width": 0.25,
+          "rotation": -8,
+          "zIndex": -1
+        }
+      }
+    },
+    "walking": {
+      "stage": {
+        "scale": 1.06,
+        "x": -2,
+        "y": 8
+      },
+      "anchors": {
+        "eyes": {
+          "x": 0.67,
+          "y": 0.4,
+          "width": 0.29,
+          "rotation": 2,
+          "zIndex": 4
+        },
+        "head": {
+          "x": 0.69,
+          "y": 0.25,
+          "width": 0.29,
+          "rotation": 0,
+          "zIndex": 3
+        },
+        "neck": {
+          "x": 0.66,
+          "y": 0.56,
+          "width": 0.2,
+          "rotation": 8,
+          "zIndex": 4
+        },
+        "tail": {
+          "x": 0.22,
+          "y": 0.54,
+          "width": 0.24,
+          "rotation": -28,
+          "zIndex": -1
+        }
+      }
+    }
+  }
+}

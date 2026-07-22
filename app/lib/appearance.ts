@@ -1,7 +1,11 @@
 import {
-  DEFAULT_DESKCAT_COSMETIC_ID,
+  NONE_DESKCAT_COSMETIC_ID,
+  createDefaultDeskCatCosmetics,
+  getDeskCatCosmetic,
   isDeskCatCosmeticId,
-  type DeskCatCosmeticId
+  type DeskCatCosmeticCategory,
+  type DeskCatCosmeticSelection,
+  type DeskCatEquippedCosmetics
 } from "./deskcatSprite";
 
 export type DeskCatBackground =
@@ -17,7 +21,7 @@ export type DeskCatBackground =
 
 export type AppearanceSettings = {
   background: DeskCatBackground;
-  cosmetic: DeskCatCosmeticId;
+  cosmetics: DeskCatEquippedCosmetics;
 };
 
 export type BackgroundTheme = {
@@ -57,10 +61,12 @@ export const APPEARANCE_EVENT = "deskcat.appearance.change";
 
 export const DEFAULT_APPEARANCE_SETTINGS: AppearanceSettings = {
   background: "black",
-  cosmetic: DEFAULT_DESKCAT_COSMETIC_ID
+  cosmetics: createDefaultDeskCatCosmetics()
 };
 
 const APPEARANCE_KEY = "deskcat.appearance.v1";
+let cachedAppearanceRaw: string | null | undefined;
+let cachedAppearanceSettings: AppearanceSettings = DEFAULT_APPEARANCE_SETTINGS;
 
 const LIGHT_SURFACE_THEME = {
   surface: "rgba(255, 255, 255, 0.82)",
@@ -81,7 +87,7 @@ const LIGHT_SURFACE_THEME = {
   inputBackground: "#ffffff",
   inputText: "#172033",
   inputBorder: "#cbd5e1",
-  bubbleBackground: "#fffdf8",
+  bubbleBackground: "#fffdf8e6",
   bubbleBorder: "rgba(214, 211, 204, 0.8)",
   bubbleText: "#1c1917",
   shadow: "rgba(15, 23, 42, 0.1)"
@@ -106,7 +112,7 @@ const DARK_SURFACE_THEME = {
   inputBackground: "rgba(8, 12, 20, 0.94)",
   inputText: "#edf4ff",
   inputBorder: "rgba(122, 185, 230, 0.24)",
-  bubbleBackground: "#0f1623",
+  bubbleBackground: "#0f1623e6",
   bubbleBorder: "rgba(122, 185, 230, 0.32)",
   bubbleText: "#edf4ff",
   shadow: "rgba(0, 0, 0, 0.34)"
@@ -131,7 +137,7 @@ const NAVY_SURFACE_THEME = {
   inputBackground: "rgba(8, 15, 31, 0.94)",
   inputText: "#eef4ff",
   inputBorder: "rgba(139, 196, 240, 0.24)",
-  bubbleBackground: "#111d38",
+  bubbleBackground: "#111d38e6",
   bubbleBorder: "rgba(139, 196, 240, 0.32)",
   bubbleText: "#eef4ff",
   shadow: "rgba(0, 0, 0, 0.34)"
@@ -156,7 +162,7 @@ const GREEN_SURFACE_THEME = {
   inputBackground: "rgba(8, 20, 14, 0.94)",
   inputText: "#eefbf2",
   inputBorder: "rgba(128, 199, 154, 0.24)",
-  bubbleBackground: "#112819",
+  bubbleBackground: "#112819e6",
   bubbleBorder: "rgba(128, 199, 154, 0.32)",
   bubbleText: "#eefbf2",
   shadow: "rgba(0, 0, 0, 0.34)"
@@ -181,7 +187,7 @@ const CABIN_SURFACE_THEME = {
   inputBackground: "rgba(34, 20, 13, 0.94)",
   inputText: "#fff5e8",
   inputBorder: "rgba(214, 171, 117, 0.24)",
-  bubbleBackground: "#3a2316",
+  bubbleBackground: "#3a2316e6",
   bubbleBorder: "rgba(214, 171, 117, 0.32)",
   bubbleText: "#fff5e8",
   shadow: "rgba(0, 0, 0, 0.36)"
@@ -206,7 +212,7 @@ const LIME_SURFACE_THEME = {
   inputBackground: "#fdfff8",
   inputText: "#213019",
   inputBorder: "rgba(132, 173, 81, 0.24)",
-  bubbleBackground: "#fafff1",
+  bubbleBackground: "#fafff1e6",
   bubbleBorder: "rgba(132, 173, 81, 0.2)",
   bubbleText: "#213019",
   shadow: "rgba(66, 91, 33, 0.12)"
@@ -231,7 +237,7 @@ const ROSE_SURFACE_THEME = {
   inputBackground: "#fffdfc",
   inputText: "#3f2025",
   inputBorder: "rgba(191, 120, 126, 0.22)",
-  bubbleBackground: "#fff6f5",
+  bubbleBackground: "#fff6f5e6",
   bubbleBorder: "rgba(191, 120, 126, 0.18)",
   bubbleText: "#3f2025",
   shadow: "rgba(122, 56, 69, 0.11)"
@@ -256,7 +262,7 @@ const POLKA_SURFACE_THEME = {
   inputBackground: "#fffdfd",
   inputText: "#402432",
   inputBorder: "rgba(220, 150, 177, 0.22)",
-  bubbleBackground: "#fff7fa",
+  bubbleBackground: "#fff7fae6",
   bubbleBorder: "rgba(220, 150, 177, 0.18)",
   bubbleText: "#402432",
   shadow: "rgba(138, 66, 96, 0.11)"
@@ -394,8 +400,46 @@ function normalizeBackground(value: unknown): DeskCatBackground {
   }
 }
 
-function normalizeCosmetic(value: unknown): DeskCatCosmeticId {
-  return isDeskCatCosmeticId(value) ? value : DEFAULT_APPEARANCE_SETTINGS.cosmetic;
+function normalizeCosmeticSelection(
+  category: DeskCatCosmeticCategory,
+  value: unknown
+): DeskCatCosmeticSelection {
+  if (value === NONE_DESKCAT_COSMETIC_ID) {
+    return NONE_DESKCAT_COSMETIC_ID;
+  }
+
+  if (!isDeskCatCosmeticId(value)) {
+    return NONE_DESKCAT_COSMETIC_ID;
+  }
+
+  const cosmetic = getDeskCatCosmetic(value);
+  return cosmetic.category === category ? value : NONE_DESKCAT_COSMETIC_ID;
+}
+
+function normalizeCosmetics(value: unknown): DeskCatEquippedCosmetics {
+  const defaults = createDefaultDeskCatCosmetics();
+  if (!value || typeof value !== "object") {
+    return defaults;
+  }
+
+  const parsed = value as Record<string, unknown>;
+  return {
+    head: normalizeCosmeticSelection("head", parsed.head),
+    neck: normalizeCosmeticSelection("neck", parsed.neck),
+    tail: normalizeCosmeticSelection("tail", parsed.tail),
+    glasses: normalizeCosmeticSelection("glasses", parsed.glasses)
+  };
+}
+
+function migrateLegacyCosmetic(value: unknown): DeskCatEquippedCosmetics {
+  const migrated = createDefaultDeskCatCosmetics();
+  if (!isDeskCatCosmeticId(value)) {
+    return migrated;
+  }
+
+  const cosmetic = getDeskCatCosmetic(value);
+  migrated[cosmetic.category] = value;
+  return migrated;
 }
 
 export function getBackgroundTheme(background: DeskCatBackground) {
@@ -409,15 +453,29 @@ export function loadAppearanceSettings(): AppearanceSettings {
 
   try {
     const raw = localStorage.getItem(APPEARANCE_KEY);
-    if (!raw) return DEFAULT_APPEARANCE_SETTINGS;
+    if (raw === cachedAppearanceRaw) {
+      return cachedAppearanceSettings;
+    }
+
+    if (!raw) {
+      cachedAppearanceRaw = null;
+      cachedAppearanceSettings = DEFAULT_APPEARANCE_SETTINGS;
+      return cachedAppearanceSettings;
+    }
 
     const parsed = JSON.parse(raw);
-    return {
+    cachedAppearanceRaw = raw;
+    cachedAppearanceSettings = {
       background: normalizeBackground(parsed?.background),
-      cosmetic: normalizeCosmetic(parsed?.cosmetic)
+      cosmetics: parsed?.cosmetics
+        ? normalizeCosmetics(parsed.cosmetics)
+        : migrateLegacyCosmetic(parsed?.cosmetic)
     };
+    return cachedAppearanceSettings;
   } catch {
-    return DEFAULT_APPEARANCE_SETTINGS;
+    cachedAppearanceRaw = localStorage.getItem(APPEARANCE_KEY);
+    cachedAppearanceSettings = DEFAULT_APPEARANCE_SETTINGS;
+    return cachedAppearanceSettings;
   }
 }
 
@@ -426,9 +484,11 @@ export function saveAppearanceSettings(settings: AppearanceSettings) {
 
   const normalized: AppearanceSettings = {
     background: normalizeBackground(settings.background),
-    cosmetic: normalizeCosmetic(settings.cosmetic)
+    cosmetics: normalizeCosmetics(settings.cosmetics)
   };
-
-  localStorage.setItem(APPEARANCE_KEY, JSON.stringify(normalized));
+  const raw = JSON.stringify(normalized);
+  cachedAppearanceRaw = raw;
+  cachedAppearanceSettings = normalized;
+  localStorage.setItem(APPEARANCE_KEY, raw);
   window.dispatchEvent(new Event(APPEARANCE_EVENT));
 }

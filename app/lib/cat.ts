@@ -1,6 +1,7 @@
 import catLines from "../data/catLines.json";
 
 type CatLines = {
+  greetings: string[];
   unknown: string[];
   streakBonus: string[];
   overallPositive: string[];
@@ -29,4 +30,9 @@ export function getCatReaction(outcome: string, currentStreak: number) {
     currentStreak >= 2 && Math.random() < 0.35 ? pick(lines.streakBonus) : null;
 
   return bonus ? `${base} ${bonus}` : base;
+}
+
+export function getCatGreeting() {
+  const lines = catLines as unknown as CatLines;
+  return pick(lines.greetings);
 }

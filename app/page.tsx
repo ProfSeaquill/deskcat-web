@@ -1,50 +1,111 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
-import deskcatLogo from "@/art/Images/deskcat-logo.png";
 import ProgressionMeter from "./components/ProgressionMeter";
-import { loadSessions, computeStreaks, loadLastReaction } from "./lib/storage";
+import DeskCatSprite from "./components/DeskCatSprite";
+import {
+  DEFAULT_DONATION_PROGRESS,
+  type DonationProgressSnapshot
+} from "./lib/donations";
+import { loadSessions, computeStreaks } from "./lib/storage";
 import { useIsClient } from "./lib/useIsClient";
 import SpeechBubble from "./components/SpeechBubble";
+import AccountControl from "./components/AccountControl";
+import { getCatGreeting } from "./lib/cat";
+import { APPEARANCE_EVENT, loadAppearanceSettings } from "./lib/appearance";
+import { DEFAULT_DESKCAT_COSMETICS } from "./lib/deskcatSprite";
 
-const rewardMilestones = [
-  { label: "Reward 1", value: 33 },
-  { label: "Reward 2", value: 66 },
-  { label: "Reward 3", value: 100, highlight: true }
-];
+function subscribeToAppearanceStore(onStoreChange: () => void) {
+  window.addEventListener(APPEARANCE_EVENT, onStoreChange);
+  window.addEventListener("storage", onStoreChange);
+
+  return () => {
+    window.removeEventListener(APPEARANCE_EVENT, onStoreChange);
+    window.removeEventListener("storage", onStoreChange);
+  };
+}
 
 export default function Home() {
   const router = useRouter();
   const isClient = useIsClient();
   const [sessionType, setSessionType] = useState("Sprint");
-  const lastReaction = isClient ? loadLastReaction() : null;
+  const [donationProgress, setDonationProgress] =
+    useState<DonationProgressSnapshot>(DEFAULT_DONATION_PROGRESS);
+  const greeting = useMemo(() => (isClient ? getCatGreeting() : null), [isClient]);
   const streak = computeStreaks(isClient ? loadSessions() : []);
+  const cosmetics = useSyncExternalStore(
+    subscribeToAppearanceStore,
+    () => loadAppearanceSettings().cosmetics,
+    () => DEFAULT_DESKCAT_COSMETICS
+  );
+
+  useEffect(() => {
+    let isCancelled = false;
+
+    async function loadDonationProgress() {
+      try {
+        const response = await fetch("/api/donations/progress", { cache: "no-store" });
+        if (!response.ok) return;
+
+        const data = (await response.json()) as DonationProgressSnapshot;
+        if (!isCancelled) {
+          setDonationProgress(data);
+        }
+      } catch {
+        // Keep the local fallback snapshot when the API is unavailable.
+      }
+    }
+
+    void loadDonationProgress();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, []);
 
   return (
     <main className="min-h-screen px-6 py-10">
       <div className="mx-auto grid w-full max-w-6xl gap-8 lg:grid-cols-[minmax(0,1fr)_316px] lg:items-start">
         <section className="space-y-4">
-          <div className="theme-surface rounded-[32px] border px-5 py-4 backdrop-blur">
-            <div className="flex flex-col items-center gap-2 sm:flex-row sm:items-center">
-              <Link
-                href="/my-deskcat"
-                aria-label="My DeskCat"
-                className="group shrink-0 rounded-[28px] p-1 transition hover:-translate-y-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
-              >
-                <Image
-                  src={deskcatLogo}
-                  alt="DeskCat"
-                  width={232}
-                  height={232}
-                  className="shrink-0 self-center transition-transform group-hover:scale-[1.01]"
-                />
-              </Link>
+          <div className="theme-surface relative overflow-visible rounded-[32px] border px-5 pb-4 pt-16 backdrop-blur sm:pt-4">
+            <div className="absolute right-4 top-4">
+              <AccountControl />
+            </div>
 
-              <div className="flex-1 text-center sm:text-left">
-                <h1 className="theme-text-primary text-4xl font-semibold tracking-tight">
+            <div className="flex flex-col items-center justify-center gap-4 sm:flex-row sm:justify-center">
+              <div className="relative shrink-0">
+                {greeting && (
+                  <div className="absolute bottom-[250px] left-[64%] z-10 -translate-x-1/2">
+                    <SpeechBubble text={greeting} tail="down-left" />
+                  </div>
+                )}
+
+                <Link
+                  href="/my-deskcat"
+                  aria-label="My DeskCat"
+                  className="group shrink-0 rounded-[28px] p-1 transition hover:-translate-y-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
+                >
+                  <div className="relative h-[232px] w-[232px] shrink-0 self-center">
+                    <div className="absolute left-1/2 top-1/2 h-[296px] w-[296px] -translate-x-1/2 -translate-y-1/2 transition-transform group-hover:scale-[1.01]">
+                      <DeskCatSprite
+                        poseId="logo"
+                        cosmetics={cosmetics}
+                        alt="DeskCat"
+                        priority
+                        sizes="348px"
+                      />
+                    </div>
+                  </div>
+                </Link>
+              </div>
+
+              <div className="max-w-sm text-center">
+                <h1
+                  className="theme-text-primary text-[2.7rem] font-semibold leading-none tracking-tight"
+                  style={{ fontFamily: "var(--font-fredoka)" }}
+                >
                   DeskCat
                 </h1>
 
@@ -54,16 +115,10 @@ export default function Home() {
 
                 <Link
                   href="/my-deskcat"
-                  className="theme-link mt-3 inline-flex text-sm font-medium underline decoration-sky-300 underline-offset-4"
+                  className="theme-link mt-3 inline-flex text-[1.1rem] font-medium underline decoration-sky-300 underline-offset-4"
                 >
                   My DeskCat
                 </Link>
-
-                {lastReaction && (
-                  <div className="mt-4">
-                    <SpeechBubble text={lastReaction.message} tail="up-left" />
-                  </div>
-                )}
               </div>
             </div>
           </div>
@@ -136,10 +191,12 @@ export default function Home() {
 
         <aside className="self-start">
           <ProgressionMeter
-            title="Buy DeskCat food"
-            actionLabel="Donate"
-            currentPercent={62}
-            rewards={rewardMilestones}
+            title={donationProgress.title}
+            actionLabel={donationProgress.actionLabel}
+            currentAmount={donationProgress.currentAmount}
+            goalAmount={donationProgress.goalAmount}
+            currencyCode={donationProgress.currencyCode}
+            rewards={donationProgress.rewards}
           />
         </aside>
       </div>

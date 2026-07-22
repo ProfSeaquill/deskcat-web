@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { DESKCAT_POSES } from "../lib/deskcatSprite";
+import { DESKCAT_STAGE_POSES } from "../lib/deskcatSprite";
 
 const WARM_ROUTES = ["/timer", "/stats", "/reflect", "/my-deskcat"] as const;
 
@@ -21,7 +21,7 @@ export default function AppWarmup() {
       aria-hidden="true"
       className="pointer-events-none fixed -left-[9999px] top-0 h-px w-px overflow-hidden opacity-0"
     >
-      {DESKCAT_POSES.map((pose, index) => (
+      {DESKCAT_STAGE_POSES.map((pose, index) => (
         <Image
           key={pose.id}
           src={pose.src}

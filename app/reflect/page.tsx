@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import CatStage from "../components/CatStage";
+import PageBackLink from "../components/PageBackLink";
 import tree from "../data/reflectionTree.json";
 import { getCatReaction } from "../lib/cat";
 import { deriveReflectionMetadata, getAreaDescriptionForLabel } from "../lib/reflection";
@@ -39,7 +40,7 @@ function rerollCat() {
   window.dispatchEvent(new Event("deskcat.cat.reroll"));
 }
 
-function ReflectionFooter({
+function ReflectionBackButton({
   canGoBack,
   onBack
 }: {
@@ -47,7 +48,7 @@ function ReflectionFooter({
   onBack: () => void;
 }) {
   return (
-    <div className="flex items-center justify-between gap-3 pt-1">
+    <div className="fixed left-4 top-4 z-40 max-w-[calc(100vw-2rem)]">
       <button
         type="button"
         onClick={onBack}
@@ -56,7 +57,13 @@ function ReflectionFooter({
       >
         ← Back
       </button>
+    </div>
+  );
+}
 
+function ReflectionFooter() {
+  return (
+    <div className="flex justify-end pt-1">
       <Link
         href="/"
         className="theme-button-secondary theme-hover-highlight inline-flex items-center justify-center rounded-xl border px-4 py-2 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
@@ -165,6 +172,7 @@ function ReflectPageContent() {
   if (!node) {
     return (
       <main className="min-h-screen px-6 pb-6 pt-10 flex justify-center">
+        <ReflectionBackButton canGoBack={path.length > 0} onBack={goBack} />
         <div className="w-full max-w-md space-y-3">
           <CatStage />
           <h1 className="text-2xl font-semibold">Reflection</h1>
@@ -177,7 +185,7 @@ function ReflectPageContent() {
           >
             Restart
           </button>
-          <ReflectionFooter canGoBack={path.length > 0} onBack={goBack} />
+          <ReflectionFooter />
         </div>
       </main>
     );
@@ -185,6 +193,7 @@ function ReflectPageContent() {
 
   return (
     <main className="min-h-screen px-6 pb-6 pt-10 flex justify-center">
+      <ReflectionBackButton canGoBack={path.length > 0 && !catMessage} onBack={goBack} />
       <div className="w-full max-w-md space-y-3">
         <CatStage />
         <div className="flex items-center justify-between gap-3">
@@ -217,7 +226,7 @@ function ReflectPageContent() {
           )}
         </div>
 
-        <ReflectionFooter canGoBack={path.length > 0 && !catMessage} onBack={goBack} />
+        <ReflectionFooter />
       </div>
     </main>
   );
@@ -226,6 +235,10 @@ function ReflectPageContent() {
 function ReflectPageFallback() {
   return (
     <main className="min-h-screen px-6 pb-6 pt-10 flex justify-center">
+      <div className="fixed left-4 top-4 z-40 max-w-[calc(100vw-2rem)]">
+        <PageBackLink href="/" />
+      </div>
+
       <div className="w-full max-w-md space-y-3">
         <CatStage />
         <div className="flex items-center justify-between gap-3">
@@ -237,7 +250,7 @@ function ReflectPageFallback() {
           <p className="theme-text-secondary">Preparing reflection...</p>
         </div>
 
-        <ReflectionFooter canGoBack={false} onBack={() => {}} />
+        <ReflectionFooter />
       </div>
     </main>
   );

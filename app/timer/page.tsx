@@ -1,9 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import CatStage from "../components/CatStage";
+import PageBackLink from "../components/PageBackLink";
 
 type SessionType = "Sprint" | "Marathon" | "Pomodoro" | "Custom";
 
@@ -38,6 +38,8 @@ const SESSION_PRESETS: Record<SessionType, SessionConfig> = {
   }
 };
 
+const MAX_SESSION_MINUTES = 500;
+
 function normalizeSessionType(type: string | null): SessionType {
   switch (type) {
     case "Marathon":
@@ -65,10 +67,10 @@ function formatRounds(rounds: number) {
   return `${rounds} round${rounds === 1 ? "" : "s"}`;
 }
 
-function parseSessionNumber(value: string, minimum: number) {
+function parseSessionNumber(value: string, minimum: number, maximum: number) {
   const parsed = Number.parseInt(value, 10);
   if (Number.isNaN(parsed)) return minimum;
-  return Math.max(minimum, parsed);
+  return Math.min(maximum, Math.max(minimum, parsed));
 }
 
 export default function TimerPage() {
@@ -95,6 +97,10 @@ function TimerPageContent() {
 function TimerPageFallback() {
   return (
     <main className="min-h-screen px-6 pb-6 pt-10 flex justify-center">
+      <div className="fixed left-4 top-4 z-40 max-w-[calc(100vw-2rem)]">
+        <PageBackLink href="/" />
+      </div>
+
       <div className="w-full max-w-md space-y-3">
         <CatStage />
         <div className="flex items-center justify-between gap-3">
@@ -253,9 +259,10 @@ function TimerSession({
 
   function updateConfig<K extends keyof SessionConfig>(key: K, value: string) {
     const minimum = key === "breakMinutes" ? 0 : 1;
+    const maximum = key === "rounds" ? 99 : MAX_SESSION_MINUTES;
     const nextConfig = {
       ...config,
-      [key]: parseSessionNumber(value, minimum)
+      [key]: parseSessionNumber(value, minimum, maximum)
     };
 
     setConfig(nextConfig);
@@ -278,6 +285,10 @@ function TimerSession({
 
   return (
     <main className="min-h-screen px-6 pb-6 pt-10 flex justify-center">
+      <div className="fixed left-4 top-4 z-40 max-w-[calc(100vw-2rem)]">
+        <PageBackLink href="/" />
+      </div>
+
       <div className="w-full max-w-md space-y-3">
         <CatStage />
         <div className="flex items-center justify-between gap-3">
@@ -299,6 +310,7 @@ function TimerSession({
                 <input
                   type="number"
                   min={1}
+                  max={MAX_SESSION_MINUTES}
                   inputMode="numeric"
                   className="theme-input w-full rounded-xl border px-3 py-2"
                   value={config.focusMinutes}
@@ -312,6 +324,7 @@ function TimerSession({
                 <input
                   type="number"
                   min={0}
+                  max={MAX_SESSION_MINUTES}
                   inputMode="numeric"
                   className="theme-input w-full rounded-xl border px-3 py-2"
                   value={config.breakMinutes}
@@ -325,6 +338,7 @@ function TimerSession({
                 <input
                   type="number"
                   min={1}
+                  max={99}
                   inputMode="numeric"
                   className="theme-input w-full rounded-xl border px-3 py-2"
                   value={config.rounds}
@@ -369,10 +383,6 @@ function TimerSession({
             </p>
           )}
         </div>
-
-        <Link href="/" className="theme-link text-sm underline">
-          ← Back
-        </Link>
       </div>
     </main>
   );

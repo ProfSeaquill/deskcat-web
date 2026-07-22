@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { usePathname } from "next/navigation";
 import { loadLastReaction } from "../lib/storage";
 import { APPEARANCE_EVENT, loadAppearanceSettings } from "../lib/appearance";
-import { DESKCAT_POSES } from "../lib/deskcatSprite";
+import { DESKCAT_STAGE_POSES } from "../lib/deskcatSprite";
 import DeskCatSprite from "./DeskCatSprite";
 import SpeechBubble from "./SpeechBubble";
 
@@ -45,6 +45,7 @@ export default function CatStage() {
   const pathname = usePathname();
   const isHome = pathname === "/";
   const isReflect = pathname === "/reflect";
+  const liftBubble = pathname === "/reflect" || pathname === "/timer";
   const [roll, setRoll] = useState(0);
   const [previewMessage, setPreviewMessage] = useState<string | null>(null);
 
@@ -72,10 +73,10 @@ export default function CatStage() {
   );
 
   const message = isReflect ? previewMessage : lastMessage;
-  const cosmeticId = useSyncExternalStore(
+  const cosmetics = useSyncExternalStore(
     subscribeToAppearanceStore,
-    () => loadAppearanceSettings().cosmetic,
-    () => loadAppearanceSettings().cosmetic
+    () => loadAppearanceSettings().cosmetics,
+    () => loadAppearanceSettings().cosmetics
   );
 
   const { slot, pose } = useMemo(() => {
@@ -87,7 +88,7 @@ export default function CatStage() {
 
     return {
       slot: PLATFORM_POSITIONS[hPos % PLATFORM_POSITIONS.length],
-      pose: DESKCAT_POSES[hPose % DESKCAT_POSES.length]
+      pose: DESKCAT_STAGE_POSES[hPose % DESKCAT_STAGE_POSES.length]
     };
   }, [pathname, roll]);
 
@@ -98,8 +99,9 @@ export default function CatStage() {
       <div className="relative mx-auto h-[200px] w-[min(92vw,420px)]">
         {message && (
           <div
-            className="absolute top-0"
+            className="absolute"
             style={{
+              top: liftBubble ? "-0.7rem" : "0",
               left: `${slot.leftPercent}%`,
               transform: "translateX(-50%)"
             }}
@@ -121,7 +123,7 @@ export default function CatStage() {
           <div className="relative h-[184px] w-[184px] drop-shadow-[0_10px_18px_rgba(0,0,0,0.18)] opacity-95">
             <DeskCatSprite
               poseId={pose.id}
-              cosmeticId={cosmeticId}
+              cosmetics={cosmetics}
               alt="DeskCat"
               priority
               sizes="184px"
