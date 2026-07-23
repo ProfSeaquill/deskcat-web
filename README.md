@@ -25,13 +25,15 @@ button creates a one-time Stripe-hosted Checkout Session; secret keys never reac
 ## DeskCat anchor editor
 
 With the development server running, open
-[http://localhost:3000/dev/deskcat-anchors](http://localhost:3000/dev/deskcat-anchors) to place
-and preview cosmetic anchors. Saving validates the full pose document and writes
-`app/data/deskcatAnchors.json`; commit that file with the related art changes.
+[http://localhost:3000/dev/editor](http://localhost:3000/dev/editor) to place
+and preview cosmetic anchors. Publishing validates the full pose document and writes
+`app/data/deskcatAnchors.json`, which is the same data the DeskCat app renders from; commit that
+file with the related art changes.
 
-The editor is disabled in production by default. Set `DESKCAT_ANCHOR_EDITOR_ENABLED=true` at
-build time and configure `DESKCAT_ANCHOR_EDITOR_TOKEN` to expose token-protected saves. Local
-authoring is preferred because writes to many serverless production filesystems are not durable.
+The editor is disabled in production by default. Set `DESKCAT_ANCHOR_EDITOR_ENABLED=true` and
+configure `DESKCAT_ANCHOR_EDITOR_TOKEN` as the editor password to expose `/dev/editor`. The old
+`/dev/deskcat-anchors` URL redirects to `/dev/editor`. Local authoring is preferred because writes
+to many serverless production filesystems are not durable.
 
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 

@@ -1,4 +1,5 @@
 import type { StaticImageData } from "next/image";
+import defaultGlasses from "@/art/Images/Accessories/Glasses/glasses_default.png";
 import redGlassesThreeQuarter from "@/art/Images/Accessories/Glasses/Red Glasses/red_glasses_3:4.png";
 import redGlassesFront from "@/art/Images/Accessories/Glasses/Red Glasses/red_glasses_front.png";
 import redTopHatThreeQuarter from "@/art/Images/Accessories/Head/Top Hat/red_top hat_3:4.png";
@@ -10,18 +11,19 @@ import catReading from "@/art/Images/cat/reading.png";
 import catSleeping from "@/art/Images/cat/sleeping.png";
 import catSitting from "@/art/Images/cat/sitting.png";
 import catWalking from "@/art/Images/cat/walking.png";
-import deskcatLogo from "@/art/Images/deskcat-logo.png";
+import deskcatLogo from "@/art/Images/logo.png";
 import {
   DESKCAT_ANCHOR_DATA,
+  type DeskCatAnchorAssetView,
   type DeskCatAnchorSlotId,
   type DeskCatPoseId,
   type DeskCatPoseLayout
 } from "./deskcatAnchors";
 
-export type { DeskCatAnchor, DeskCatAnchorSlotId, DeskCatPoseId } from "./deskcatAnchors";
+export type { DeskCatAnchor, DeskCatAnchorAssetView, DeskCatAnchorSlotId, DeskCatPoseId } from "./deskcatAnchors";
 
 export type DeskCatCosmeticCategory = "head" | "neck" | "tail" | "glasses";
-export type DeskCatCosmeticId = "red-bowtie" | "red-top-hat" | "red-glasses";
+export type DeskCatCosmeticId = "red-bowtie" | "red-top-hat" | "glasses-default" | "red-glasses";
 export type DeskCatCosmeticSelection = DeskCatCosmeticId | "none";
 export type DeskCatEquippedCosmetics = Record<DeskCatCosmeticCategory, DeskCatCosmeticSelection>;
 
@@ -45,6 +47,7 @@ export type DeskCatCosmetic = {
   anchorSlot: DeskCatAnchorSlotId;
   previewSrc: StaticImageData;
   renderSrc: StaticImageData;
+  renderSrcByView?: Partial<Record<DeskCatAnchorAssetView, StaticImageData>>;
   poseRenderSrc?: Partial<Record<DeskCatPoseId, StaticImageData>>;
   scale: number;
   offsetX: number;
@@ -53,6 +56,7 @@ export type DeskCatCosmetic = {
 };
 
 export const NONE_DESKCAT_COSMETIC_ID = "none" as const;
+export const DEFAULT_DESKCAT_GLASSES_ID = "glasses-default" as const;
 
 export const DESKCAT_COSMETIC_CATEGORIES: readonly DeskCatCosmeticCategoryDefinition[] = [
   { id: "head", label: "Head", description: "Hats and other headwear live here.", anchorSlot: "head" },
@@ -62,7 +66,7 @@ export const DESKCAT_COSMETIC_CATEGORIES: readonly DeskCatCosmeticCategoryDefini
 ] as const;
 
 export function createDefaultDeskCatCosmetics(): DeskCatEquippedCosmetics {
-  return { head: "none", neck: "none", tail: "none", glasses: "none" };
+  return { head: "none", neck: "none", tail: "none", glasses: DEFAULT_DESKCAT_GLASSES_ID };
 }
 
 export const DEFAULT_DESKCAT_COSMETICS = createDefaultDeskCatCosmetics();
@@ -88,18 +92,27 @@ export const DESKCAT_COSMETIC_OPTIONS: readonly DeskCatCosmetic[] = [
   {
     id: "red-bowtie", label: "Red Bowtie", description: "A bright red bowtie for DeskCat's neck.",
     category: "neck", anchorSlot: "neck", previewSrc: redBowtieFront, renderSrc: redBowtieThreeQuarter,
+    renderSrcByView: { front: redBowtieFront, threeQuarter: redBowtieThreeQuarter },
     poseRenderSrc: { logo: redBowtieFront, reading: redBowtieFront, sitting: redBowtieFront, sleeping: redBowtieFront, walking: redBowtieFront },
     scale: 1, offsetX: 0, offsetY: 0, rotationOffset: 0
   },
   {
     id: "red-top-hat", label: "Red Top Hat", description: "A bright red top hat for DeskCat's head.",
     category: "head", anchorSlot: "head", previewSrc: redTopHatFront, renderSrc: redTopHatThreeQuarter,
+    renderSrcByView: { front: redTopHatFront, threeQuarter: redTopHatThreeQuarter },
     poseRenderSrc: { logo: redTopHatFront, reading: redTopHatFront, sitting: redTopHatFront, sleeping: redTopHatFront, walking: redTopHatFront },
     scale: 1.18, offsetX: 0, offsetY: -0.05, rotationOffset: 0
   },
   {
+    id: "glasses-default", label: "Default Glasses", description: "DeskCat's regular black glasses.",
+    category: "glasses", anchorSlot: "eyes", previewSrc: defaultGlasses, renderSrc: defaultGlasses,
+    renderSrcByView: { front: defaultGlasses, threeQuarter: defaultGlasses },
+    scale: 1, offsetX: 0, offsetY: 0, rotationOffset: 0
+  },
+  {
     id: "red-glasses", label: "Red Glasses", description: "A bright red pair of glasses for DeskCat.",
     category: "glasses", anchorSlot: "eyes", previewSrc: redGlassesFront, renderSrc: redGlassesThreeQuarter,
+    renderSrcByView: { front: redGlassesFront, threeQuarter: redGlassesThreeQuarter },
     poseRenderSrc: { logo: redGlassesFront, reading: redGlassesFront, sitting: redGlassesFront, sleeping: redGlassesFront, walking: redGlassesFront },
     scale: 1, offsetX: 0, offsetY: 0, rotationOffset: 0
   }

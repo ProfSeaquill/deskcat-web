@@ -1,9 +1,11 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import {
+  EDITOR_SESSION_COOKIE,
   canWriteDeskCatAnchors,
-  isDeskCatAnchorEditorEnabled
+  isDeskCatAnchorEditorEnabled,
+  isDeskCatAnchorEditorSessionValid
 } from "../../../lib/deskcatAnchorEditor.server";
 import {
   validateDeskCatAnchorDocument,
@@ -14,11 +16,12 @@ export const runtime = "nodejs";
 
 const anchorFilePath = path.join(process.cwd(), "app", "data", "deskcatAnchors.json");
 
-export async function PUT(request: Request) {
+export async function PUT(request: NextRequest) {
   if (!isDeskCatAnchorEditorEnabled()) {
     return NextResponse.json({ error: "Not found." }, { status: 404 });
   }
-  if (!canWriteDeskCatAnchors(request.headers.get("authorization"))) {
+  const hasSession = isDeskCatAnchorEditorSessionValid(request.cookies.get(EDITOR_SESSION_COOKIE)?.value);
+  if (!hasSession && !canWriteDeskCatAnchors(request.headers.get("authorization"))) {
     return NextResponse.json({ error: "A valid editor token is required." }, { status: 401 });
   }
 

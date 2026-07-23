@@ -1,4 +1,5 @@
 import {
+  DEFAULT_DESKCAT_GLASSES_ID,
   NONE_DESKCAT_COSMETIC_ID,
   createDefaultDeskCatCosmetics,
   getDeskCatCosmetic,
@@ -404,16 +405,17 @@ function normalizeCosmeticSelection(
   category: DeskCatCosmeticCategory,
   value: unknown
 ): DeskCatCosmeticSelection {
+  const fallback = createDefaultDeskCatCosmetics()[category];
   if (value === NONE_DESKCAT_COSMETIC_ID) {
-    return NONE_DESKCAT_COSMETIC_ID;
+    return category === "glasses" ? fallback : NONE_DESKCAT_COSMETIC_ID;
   }
 
   if (!isDeskCatCosmeticId(value)) {
-    return NONE_DESKCAT_COSMETIC_ID;
+    return fallback;
   }
 
   const cosmetic = getDeskCatCosmetic(value);
-  return cosmetic.category === category ? value : NONE_DESKCAT_COSMETIC_ID;
+  return cosmetic.category === category ? value : fallback;
 }
 
 function normalizeCosmetics(value: unknown): DeskCatEquippedCosmetics {
@@ -427,7 +429,10 @@ function normalizeCosmetics(value: unknown): DeskCatEquippedCosmetics {
     head: normalizeCosmeticSelection("head", parsed.head),
     neck: normalizeCosmeticSelection("neck", parsed.neck),
     tail: normalizeCosmeticSelection("tail", parsed.tail),
-    glasses: normalizeCosmeticSelection("glasses", parsed.glasses)
+    glasses:
+      parsed.glasses === undefined
+        ? DEFAULT_DESKCAT_GLASSES_ID
+        : normalizeCosmeticSelection("glasses", parsed.glasses)
   };
 }
 

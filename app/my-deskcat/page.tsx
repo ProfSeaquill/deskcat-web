@@ -13,6 +13,7 @@ import {
   type DeskCatBackground
 } from "../lib/appearance";
 import {
+  DEFAULT_DESKCAT_GLASSES_ID,
   DESKCAT_COSMETIC_CATEGORIES,
   getDeskCatCosmeticsForCategory,
   type DeskCatCosmeticCategory,
@@ -113,9 +114,11 @@ function MyDeskCatEditor() {
     category: DeskCatCosmeticCategory,
     selection: DeskCatCosmeticSelection
   ) {
+    const nextSelection =
+      category === "glasses" && selection === "none" ? DEFAULT_DESKCAT_GLASSES_ID : selection;
     setDraftCosmetics((current) => ({
       ...current,
-      [category]: selection
+      [category]: nextSelection
     }));
   }
 
@@ -287,8 +290,8 @@ function MyDeskCatEditor() {
           <div>
             <h2 className="theme-text-primary text-2xl font-semibold">Cosmetics</h2>
             <p className="theme-text-secondary mt-3 max-w-3xl text-sm">
-              Mix and match one cosmetic from each category. Every category has a None option, so
-              DeskCat can wear several accessories at once or stay simple where you want.
+              Mix and match one cosmetic from each category. DeskCat wears default glasses unless
+              you choose another eyewear option or explicitly remove them.
             </p>
           </div>
 
@@ -359,6 +362,7 @@ function MyDeskCatEditor() {
 
                 const options = getDeskCatCosmeticsForCategory(category.id);
                 const selectedCosmetic = draftCosmetics[category.id];
+                const allowsNone = category.id !== "glasses";
 
                 return (
                   <>
@@ -368,13 +372,15 @@ function MyDeskCatEditor() {
                     </div>
 
                     <div className="grid gap-4 sm:grid-cols-2">
-                      <CosmeticChoiceCard
-                        label="None"
-                        description={getNoneDescription(category.id)}
-                        isSelected={selectedCosmetic === "none"}
-                        onClick={() => updateCosmetic(category.id, "none")}
-                        previewTheme={previewTheme}
-                      />
+                      {allowsNone && (
+                        <CosmeticChoiceCard
+                          label="None"
+                          description={getNoneDescription(category.id)}
+                          isSelected={selectedCosmetic === "none"}
+                          onClick={() => updateCosmetic(category.id, "none")}
+                          previewTheme={previewTheme}
+                        />
+                      )}
 
                       {options.map((option) => (
                         <CosmeticChoiceCard

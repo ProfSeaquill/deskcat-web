@@ -13,13 +13,18 @@ export const DESKCAT_ANCHOR_SLOT_IDS = ["eyes", "head", "neck", "tail"] as const
 
 export type DeskCatPoseId = (typeof DESKCAT_POSE_IDS)[number];
 export type DeskCatAnchorSlotId = (typeof DESKCAT_ANCHOR_SLOT_IDS)[number];
+export type DeskCatAnchorAssetView = "front" | "threeQuarter";
 
 export type DeskCatAnchor = {
   x: number;
   y: number;
   width: number;
+  height?: number;
   rotation: number;
   zIndex: number;
+  assetView?: DeskCatAnchorAssetView;
+  flipX?: boolean;
+  visible?: boolean;
 };
 
 export type DeskCatStageTransform = {
@@ -28,9 +33,27 @@ export type DeskCatStageTransform = {
   y: number;
 };
 
+export type DeskCatCutoutPoint = {
+  x: number;
+  y: number;
+};
+
+export type DeskCatCutoutLayer = {
+  id: string;
+  label: string;
+  points: DeskCatCutoutPoint[];
+  offsetX: number;
+  offsetY: number;
+  zIndex: number;
+  visible?: boolean;
+  flipX?: boolean;
+};
+
 export type DeskCatPoseLayout = {
   stage: DeskCatStageTransform;
   anchors: Record<DeskCatAnchorSlotId, DeskCatAnchor>;
+  cosmeticAnchors?: Record<string, DeskCatAnchor>;
+  cutoutLayers?: DeskCatCutoutLayer[];
 };
 
 export type DeskCatAnchorDocument = {
@@ -42,6 +65,36 @@ export const DESKCAT_ANCHOR_DATA = anchorData as DeskCatAnchorDocument;
 
 function isFiniteNumber(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value);
+}
+
+function validateAnchor(anchor: Partial<DeskCatAnchor>, path: string, errors: string[]) {
+  if (!isFiniteNumber(anchor.x) || anchor.x < 0 || anchor.x > 1) {
+    errors.push(`${path}.x must be between 0 and 1.`);
+  }
+  if (!isFiniteNumber(anchor.y) || anchor.y < 0 || anchor.y > 1) {
+    errors.push(`${path}.y must be between 0 and 1.`);
+  }
+  if (!isFiniteNumber(anchor.width) || anchor.width <= 0 || anchor.width > 1) {
+    errors.push(`${path}.width must be greater than 0 and at most 1.`);
+  }
+  if (anchor.height !== undefined && (!isFiniteNumber(anchor.height) || anchor.height <= 0 || anchor.height > 1)) {
+    errors.push(`${path}.height must be greater than 0 and at most 1.`);
+  }
+  if (!isFiniteNumber(anchor.rotation) || Math.abs(anchor.rotation) > 360) {
+    errors.push(`${path}.rotation must be between -360 and 360.`);
+  }
+  if (typeof anchor.zIndex !== "number" || !Number.isInteger(anchor.zIndex) || anchor.zIndex < -10 || anchor.zIndex > 10) {
+    errors.push(`${path}.zIndex must be an integer between -10 and 10.`);
+  }
+  if (anchor.assetView !== undefined && anchor.assetView !== "front" && anchor.assetView !== "threeQuarter") {
+    errors.push(`${path}.assetView must be front or threeQuarter.`);
+  }
+  if (anchor.flipX !== undefined && typeof anchor.flipX !== "boolean") {
+    errors.push(`${path}.flipX must be true or false.`);
+  }
+  if (anchor.visible !== undefined && typeof anchor.visible !== "boolean") {
+    errors.push(`${path}.visible must be true or false.`);
+  }
 }
 
 export function validateDeskCatAnchorDocument(value: unknown): string[] {
@@ -69,27 +122,68 @@ export function validateDeskCatAnchorDocument(value: unknown): string[] {
       errors.push(`Pose ${poseId} has an invalid stage position.`);
     }
 
+    if (pose.cutoutLayers !== undefined) {
+      if (!Array.isArray(pose.cutoutLayers)) {
+        errors.push(`Pose ${poseId} cutoutLayers must be an array.`);
+      } else {
+        for (const layer of pose.cutoutLayers) {
+          if (!layer || typeof layer !== "object") {
+            errors.push(`Pose ${poseId} contains an invalid cutout layer.`);
+            continue;
+          }
+          if (typeof layer.id !== "string" || layer.id.trim().length === 0) {
+            errors.push(`Pose ${poseId} contains a cutout layer without an id.`);
+          }
+          if (typeof layer.label !== "string" || layer.label.trim().length === 0) {
+            errors.push(`Pose ${poseId} contains a cutout layer without a label.`);
+          }
+          if (!Array.isArray(layer.points) || layer.points.length < 3) {
+            errors.push(`${poseId}.${layer.id}.points must contain at least 3 points.`);
+          } else {
+            for (const point of layer.points) {
+              if (!isFiniteNumber(point.x) || point.x < 0 || point.x > 1 || !isFiniteNumber(point.y) || point.y < 0 || point.y > 1) {
+                errors.push(`${poseId}.${layer.id}.points must use normalized x/y values between 0 and 1.`);
+                break;
+              }
+            }
+          }
+          if (!isFiniteNumber(layer.offsetX) || !isFiniteNumber(layer.offsetY)) {
+            errors.push(`${poseId}.${layer.id}.offset must be finite.`);
+          }
+          if (!Number.isInteger(layer.zIndex) || layer.zIndex < -10 || layer.zIndex > 10) {
+            errors.push(`${poseId}.${layer.id}.zIndex must be an integer between -10 and 10.`);
+          }
+          if (layer.visible !== undefined && typeof layer.visible !== "boolean") {
+            errors.push(`${poseId}.${layer.id}.visible must be true or false.`);
+          }
+          if (layer.flipX !== undefined && typeof layer.flipX !== "boolean") {
+            errors.push(`${poseId}.${layer.id}.flipX must be true or false.`);
+          }
+        }
+      }
+    }
+
+    if (pose.cosmeticAnchors !== undefined) {
+      if (!pose.cosmeticAnchors || typeof pose.cosmeticAnchors !== "object" || Array.isArray(pose.cosmeticAnchors)) {
+        errors.push(`Pose ${poseId} cosmeticAnchors must be an object.`);
+      } else {
+        for (const [cosmeticId, cosmeticAnchor] of Object.entries(pose.cosmeticAnchors)) {
+          if (!cosmeticAnchor || typeof cosmeticAnchor !== "object") {
+            errors.push(`${poseId}.cosmeticAnchors.${cosmeticId} must be an anchor object.`);
+            continue;
+          }
+          validateAnchor(cosmeticAnchor, `${poseId}.cosmeticAnchors.${cosmeticId}`, errors);
+        }
+      }
+    }
+
     for (const slotId of DESKCAT_ANCHOR_SLOT_IDS) {
       const anchor = pose.anchors?.[slotId];
       if (!anchor) {
         errors.push(`Pose ${poseId} is missing its ${slotId} anchor.`);
         continue;
       }
-      if (!isFiniteNumber(anchor.x) || anchor.x < 0 || anchor.x > 1) {
-        errors.push(`${poseId}.${slotId}.x must be between 0 and 1.`);
-      }
-      if (!isFiniteNumber(anchor.y) || anchor.y < 0 || anchor.y > 1) {
-        errors.push(`${poseId}.${slotId}.y must be between 0 and 1.`);
-      }
-      if (!isFiniteNumber(anchor.width) || anchor.width <= 0 || anchor.width > 1) {
-        errors.push(`${poseId}.${slotId}.width must be greater than 0 and at most 1.`);
-      }
-      if (!isFiniteNumber(anchor.rotation) || Math.abs(anchor.rotation) > 360) {
-        errors.push(`${poseId}.${slotId}.rotation must be between -360 and 360.`);
-      }
-      if (!Number.isInteger(anchor.zIndex) || anchor.zIndex < -10 || anchor.zIndex > 10) {
-        errors.push(`${poseId}.${slotId}.zIndex must be an integer between -10 and 10.`);
-      }
+      validateAnchor(anchor, `${poseId}.${slotId}`, errors);
     }
   }
 
