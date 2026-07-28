@@ -41,6 +41,17 @@ function parsePngDimensions(bytes: Uint8Array) {
   };
 }
 
+function getBlobCredentials(request: Request) {
+  const token = process.env.BLOB_READ_WRITE_TOKEN;
+  if (token) return { token };
+
+  const oidcToken = request.headers.get("x-vercel-oidc-token") ?? undefined;
+  const storeId = process.env.BLOB_STORE_ID;
+  if (oidcToken && storeId) return { oidcToken, storeId };
+
+  return null;
+}
+
 export async function GET() {
   const session = await getAdminSession();
   if (!session) return jsonError("Not found.", 404);
@@ -65,7 +76,8 @@ export async function POST(request: Request) {
   const session = await getAdminSession();
   if (!session?.user?.email) return jsonError("Not found.", 404);
 
-  if (!process.env.BLOB_READ_WRITE_TOKEN && !process.env.VERCEL_OIDC_TOKEN) {
+  const blobCredentials = getBlobCredentials(request);
+  if (!blobCredentials) {
     return jsonError("Blob storage is not configured.", 500);
   }
 
@@ -124,7 +136,8 @@ export async function POST(request: Request) {
     const blob = await put(pathname, arrayBuffer, {
       access: "public",
       contentType: "image/png",
-      addRandomSuffix: false
+      addRandomSuffix: false,
+      ...blobCredentials
     });
 
     const db = getDb();

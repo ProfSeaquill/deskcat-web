@@ -40,9 +40,11 @@ metadata, pose placements, and audit logging.
 
 ## Admin asset uploads
 
-Set `BLOB_READ_WRITE_TOKEN` to upload cosmetic PNG assets from `/admin/assets`. Uploads are stored
-in Vercel Blob and recorded in the `cosmetic_assets` table. The public DeskCat runtime does not use
-uploaded assets yet.
+Connect a Vercel Blob store to the project and enable access to System Environment Variables for
+OIDC authentication. The production path uses `BLOB_STORE_ID` plus Vercel's runtime
+`x-vercel-oidc-token` header. For local development outside Vercel, set `BLOB_READ_WRITE_TOKEN` as
+a fallback. Uploads are stored in Vercel Blob and recorded in the `cosmetic_assets` table. The
+public DeskCat runtime does not use uploaded assets yet.
 
 ## DeskCat anchor editor
 
