@@ -94,6 +94,14 @@ export const cosmeticAssets = pgTable(
   ]
 );
 
+export const featureFlags = pgTable("feature_flags", {
+  id: varchar("id", { length: 80 }).primaryKey(),
+  enabled: boolean("enabled").notNull().default(false),
+  description: text("description").notNull().default(""),
+  updatedByEmail: text("updated_by_email"),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow()
+});
+
 export const cosmeticPosePlacements = pgTable(
   "cosmetic_pose_placements",
   {
@@ -142,6 +150,8 @@ export type Cosmetic = typeof cosmetics.$inferSelect;
 export type NewCosmetic = typeof cosmetics.$inferInsert;
 export type CosmeticAsset = typeof cosmeticAssets.$inferSelect;
 export type NewCosmeticAsset = typeof cosmeticAssets.$inferInsert;
+export type FeatureFlag = typeof featureFlags.$inferSelect;
+export type NewFeatureFlag = typeof featureFlags.$inferInsert;
 export type CosmeticPosePlacement = typeof cosmeticPosePlacements.$inferSelect;
 export type NewCosmeticPosePlacement = typeof cosmeticPosePlacements.$inferInsert;
 export type AdminAuditLog = typeof adminAuditLogs.$inferSelect;

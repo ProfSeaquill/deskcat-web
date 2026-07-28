@@ -1,4 +1,15 @@
-export default function Home() {
+import HomeApp from "./components/HomeApp";
+import { isConstructionScreenEnabled } from "./lib/featureFlags.server";
+
+export const dynamic = "force-dynamic";
+
+export default async function Home() {
+  const isEnabled = await isConstructionScreenEnabled();
+
+  return isEnabled ? <ConstructionScreen /> : <HomeApp />;
+}
+
+function ConstructionScreen() {
   return (
     <main className="flex min-h-screen items-center justify-center px-6 py-12">
       <section className="mx-auto flex w-full max-w-xl flex-col items-center text-center">

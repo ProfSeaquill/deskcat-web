@@ -1,7 +1,12 @@
 import Link from "next/link";
+import { revalidatePath } from "next/cache";
 import donationProgress from "../data/donationProgress.json";
 import { requireAdmin } from "../lib/admin";
 import { isDeskCatAnchorEditorEnabled } from "../lib/deskcatAnchorEditor.server";
+import {
+  isConstructionScreenEnabled,
+  setConstructionScreenEnabled
+} from "../lib/featureFlags.server";
 import {
   DESKCAT_COSMETIC_CATEGORIES,
   DESKCAT_COSMETIC_OPTIONS
@@ -19,9 +24,21 @@ function getConfiguredLabel(value: string | undefined) {
   return value && value.length > 0 ? "Configured" : "Missing";
 }
 
+async function updateConstructionScreen(formData: FormData) {
+  "use server";
+
+  const session = await requireAdmin();
+  const enabled = formData.get("enabled") === "true";
+
+  await setConstructionScreenEnabled(enabled, session.user?.email ?? "unknown");
+  revalidatePath("/");
+  revalidatePath("/admin");
+}
+
 export default async function AdminPage() {
   const session = await requireAdmin();
   const editorEnabled = isDeskCatAnchorEditorEnabled();
+  const constructionScreenEnabled = await isConstructionScreenEnabled();
   const donationPercent =
     donationProgress.goalAmount > 0
       ? Math.min(100, Math.round((donationProgress.currentAmount / donationProgress.goalAmount) * 100))
@@ -63,7 +80,7 @@ export default async function AdminPage() {
           </div>
         </header>
 
-        <section className="grid gap-4 md:grid-cols-3">
+        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <StatusCard
             label="Donation progress"
             value={`${donationPercent}%`}
@@ -78,6 +95,11 @@ export default async function AdminPage() {
             label="Anchor editor"
             value={editorEnabled ? "Enabled" : "Disabled"}
             detail={process.env.NODE_ENV === "production" ? "Production rules" : "Local/dev rules"}
+          />
+          <StatusCard
+            label="Construction"
+            value={constructionScreenEnabled ? "Active" : "Inactive"}
+            detail={constructionScreenEnabled ? "Homepage is hidden" : "Homepage is public"}
           />
         </section>
 
@@ -110,6 +132,33 @@ export default async function AdminPage() {
               ))}
             </div>
           </div>
+        </section>
+
+        <section className="theme-surface rounded-[28px] border p-6 backdrop-blur">
+          <h2 className="theme-text-primary text-2xl font-semibold">Construction Screen</h2>
+          <p className="theme-text-secondary mt-2 text-sm">
+            Control whether visitors see the construction screen or the DeskCat app homepage.
+          </p>
+          <form action={updateConstructionScreen} className="mt-5 flex flex-wrap gap-3">
+            <button
+              type="submit"
+              name="enabled"
+              value="true"
+              disabled={constructionScreenEnabled}
+              className="theme-button-secondary theme-hover-highlight inline-flex items-center justify-center rounded-2xl border px-5 py-3 font-semibold transition disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Activate construction screen
+            </button>
+            <button
+              type="submit"
+              name="enabled"
+              value="false"
+              disabled={!constructionScreenEnabled}
+              className="theme-button-primary theme-hover-highlight inline-flex items-center justify-center rounded-2xl border px-5 py-3 font-semibold transition disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Deactivate construction screen
+            </button>
+          </form>
         </section>
 
         <section className="theme-surface rounded-[28px] border p-6 backdrop-blur">
