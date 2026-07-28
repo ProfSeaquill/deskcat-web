@@ -1,12 +1,15 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { NextRequest, NextResponse } from "next/server";
+import { isAdminEmail } from "../../../lib/admin";
+import { authOptions } from "../../../lib/auth";
 import {
   EDITOR_SESSION_COOKIE,
   canWriteDeskCatAnchors,
   isDeskCatAnchorEditorEnabled,
   isDeskCatAnchorEditorSessionValid
 } from "../../../lib/deskcatAnchorEditor.server";
+import { getServerSession } from "next-auth";
 import {
   validateDeskCatAnchorDocument,
   type DeskCatAnchorDocument
@@ -17,11 +20,20 @@ export const runtime = "nodejs";
 const anchorFilePath = path.join(process.cwd(), "app", "data", "deskcatAnchors.json");
 
 export async function PUT(request: NextRequest) {
-  if (!isDeskCatAnchorEditorEnabled()) {
+  const session = await getServerSession(authOptions);
+  const isAdmin = isAdminEmail(session?.user?.email);
+  const isLegacyEditorEnabled = isDeskCatAnchorEditorEnabled();
+
+  if (!isAdmin && !isLegacyEditorEnabled) {
     return NextResponse.json({ error: "Not found." }, { status: 404 });
   }
-  const hasSession = isDeskCatAnchorEditorSessionValid(request.cookies.get(EDITOR_SESSION_COOKIE)?.value);
-  if (!hasSession && !canWriteDeskCatAnchors(request.headers.get("authorization"))) {
+
+  const hasSession =
+    isLegacyEditorEnabled &&
+    isDeskCatAnchorEditorSessionValid(request.cookies.get(EDITOR_SESSION_COOKIE)?.value);
+  const hasToken =
+    isLegacyEditorEnabled && canWriteDeskCatAnchors(request.headers.get("authorization"));
+  if (!isAdmin && !hasSession && !hasToken) {
     return NextResponse.json({ error: "A valid editor token is required." }, { status: 401 });
   }
 

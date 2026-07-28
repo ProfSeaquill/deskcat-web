@@ -22,6 +22,28 @@ Copy `.env.example` to `.env.local`, then set `STRIPE_SECRET_KEY` to a Stripe te
 secret key. Set `NEXT_PUBLIC_APP_URL` to the deployed app URL in production. The donation
 button creates a one-time Stripe-hosted Checkout Session; secret keys never reach the browser.
 
+## Database
+
+DeskCat uses Drizzle with a Postgres-compatible Neon connection for admin-managed data. Set
+`DATABASE_URL` in `.env.local` for local database commands and in the deployment environment for
+server-side database access.
+
+```bash
+npm run db:generate
+npm run db:migrate
+npm run db:studio
+```
+
+The current user-facing cosmetics and progress flows still use the existing local/code-backed MVP
+storage. The initial database schema is only a foundation for admin-managed cosmetics, asset
+metadata, pose placements, and audit logging.
+
+## Admin asset uploads
+
+Set `BLOB_READ_WRITE_TOKEN` to upload cosmetic PNG assets from `/admin/assets`. Uploads are stored
+in Vercel Blob and recorded in the `cosmetic_assets` table. The public DeskCat runtime does not use
+uploaded assets yet.
+
 ## DeskCat anchor editor
 
 With the development server running, open

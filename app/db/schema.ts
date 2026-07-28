@@ -1,0 +1,148 @@
+import {
+  boolean,
+  doublePrecision,
+  index,
+  integer,
+  jsonb,
+  pgEnum,
+  pgTable,
+  text,
+  timestamp,
+  uniqueIndex,
+  uuid,
+  varchar
+} from "drizzle-orm/pg-core";
+
+export const cosmeticCategoryEnum = pgEnum("cosmetic_category", [
+  "head",
+  "neck",
+  "tail",
+  "glasses"
+]);
+
+export const cosmeticStatusEnum = pgEnum("cosmetic_status", [
+  "draft",
+  "testing",
+  "published",
+  "retired"
+]);
+
+export const anchorSlotEnum = pgEnum("anchor_slot", ["eyes", "head", "neck", "tail"]);
+
+export const poseIdEnum = pgEnum("pose_id", [
+  "logo",
+  "playing",
+  "reading",
+  "sleeping",
+  "sitting",
+  "walking"
+]);
+
+export const assetViewEnum = pgEnum("asset_view", ["front", "threeQuarter"]);
+
+export const cosmeticAssetPurposeEnum = pgEnum("cosmetic_asset_purpose", [
+  "preview",
+  "render"
+]);
+
+export const cosmetics = pgTable(
+  "cosmetics",
+  {
+    id: varchar("id", { length: 80 }).primaryKey(),
+    label: text("label").notNull(),
+    description: text("description").notNull().default(""),
+    category: cosmeticCategoryEnum("category").notNull(),
+    anchorSlot: anchorSlotEnum("anchor_slot").notNull(),
+    status: cosmeticStatusEnum("status").notNull().default("draft"),
+    sortOrder: integer("sort_order").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow()
+  },
+  (table) => [
+    index("cosmetics_status_idx").on(table.status),
+    index("cosmetics_category_idx").on(table.category)
+  ]
+);
+
+export const cosmeticAssets = pgTable(
+  "cosmetic_assets",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    cosmeticId: varchar("cosmetic_id", { length: 80 })
+      .notNull()
+      .references(() => cosmetics.id, { onDelete: "cascade" }),
+    purpose: cosmeticAssetPurposeEnum("purpose").notNull(),
+    assetView: assetViewEnum("asset_view"),
+    poseId: poseIdEnum("pose_id"),
+    storageKey: text("storage_key").notNull(),
+    publicUrl: text("public_url").notNull(),
+    mimeType: varchar("mime_type", { length: 120 }).notNull(),
+    byteSize: integer("byte_size").notNull(),
+    width: integer("width").notNull(),
+    height: integer("height").notNull(),
+    checksum: text("checksum"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow()
+  },
+  (table) => [
+    index("cosmetic_assets_cosmetic_id_idx").on(table.cosmeticId),
+    uniqueIndex("cosmetic_assets_variant_idx").on(
+      table.cosmeticId,
+      table.purpose,
+      table.assetView,
+      table.poseId
+    )
+  ]
+);
+
+export const cosmeticPosePlacements = pgTable(
+  "cosmetic_pose_placements",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    cosmeticId: varchar("cosmetic_id", { length: 80 })
+      .notNull()
+      .references(() => cosmetics.id, { onDelete: "cascade" }),
+    poseId: poseIdEnum("pose_id").notNull(),
+    x: doublePrecision("x").notNull(),
+    y: doublePrecision("y").notNull(),
+    width: doublePrecision("width").notNull(),
+    height: doublePrecision("height"),
+    rotation: doublePrecision("rotation").notNull().default(0),
+    zIndex: integer("z_index").notNull().default(0),
+    assetView: assetViewEnum("asset_view").notNull().default("front"),
+    flipX: boolean("flip_x").notNull().default(false),
+    visible: boolean("visible").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow()
+  },
+  (table) => [
+    uniqueIndex("cosmetic_pose_placements_cosmetic_pose_idx").on(table.cosmeticId, table.poseId),
+    index("cosmetic_pose_placements_pose_id_idx").on(table.poseId)
+  ]
+);
+
+export const adminAuditLogs = pgTable(
+  "admin_audit_logs",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    actorEmail: text("actor_email").notNull(),
+    action: varchar("action", { length: 120 }).notNull(),
+    targetType: varchar("target_type", { length: 80 }).notNull(),
+    targetId: text("target_id"),
+    metadata: jsonb("metadata").$type<Record<string, unknown>>().notNull().default({}),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow()
+  },
+  (table) => [
+    index("admin_audit_logs_actor_email_idx").on(table.actorEmail),
+    index("admin_audit_logs_target_idx").on(table.targetType, table.targetId),
+    index("admin_audit_logs_created_at_idx").on(table.createdAt)
+  ]
+);
+
+export type Cosmetic = typeof cosmetics.$inferSelect;
+export type NewCosmetic = typeof cosmetics.$inferInsert;
+export type CosmeticAsset = typeof cosmeticAssets.$inferSelect;
+export type NewCosmeticAsset = typeof cosmeticAssets.$inferInsert;
+export type CosmeticPosePlacement = typeof cosmeticPosePlacements.$inferSelect;
+export type NewCosmeticPosePlacement = typeof cosmeticPosePlacements.$inferInsert;
+export type AdminAuditLog = typeof adminAuditLogs.$inferSelect;
+export type NewAdminAuditLog = typeof adminAuditLogs.$inferInsert;
