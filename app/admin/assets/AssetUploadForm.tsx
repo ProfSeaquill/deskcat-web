@@ -54,6 +54,10 @@ export default function AssetUploadForm() {
   return (
     <form action={handleSubmit} className="theme-surface rounded-[28px] border p-6 backdrop-blur">
       <h2 className="theme-text-primary text-2xl font-semibold">Upload Asset</h2>
+      <p className="theme-text-secondary mt-2 text-sm">
+        Uploaded cosmetic assets are saved as public, accessible Blob files and recorded in the
+        database for admin-managed cosmetics.
+      </p>
 
       <div className="mt-5 grid gap-4 md:grid-cols-2">
         <label className="theme-text-secondary block text-sm font-medium">
@@ -96,6 +100,13 @@ export default function AssetUploadForm() {
                 {pose.label}
               </option>
             ))}
+          </select>
+        </label>
+
+        <label className="theme-text-secondary block text-sm font-medium">
+          Access
+          <select className="theme-input mt-2 w-full rounded-xl border px-3 py-2" disabled>
+            <option>Public and accessible</option>
           </select>
         </label>
       </div>

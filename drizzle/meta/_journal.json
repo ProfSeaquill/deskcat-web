@@ -15,6 +15,13 @@
       "when": 1785280906002,
       "tag": "0001_boring_titania",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1785283812119,
+      "tag": "0002_cloudy_hairball",
+      "breakpoints": true
     }
   ]
 }

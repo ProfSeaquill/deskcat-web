@@ -102,6 +102,28 @@ export const featureFlags = pgTable("feature_flags", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow()
 });
 
+export const donationSettings = pgTable("donation_settings", {
+  id: varchar("id", { length: 80 }).primaryKey(),
+  title: text("title").notNull(),
+  actionLabel: text("action_label").notNull(),
+  currencyCode: varchar("currency_code", { length: 3 }).notNull().default("USD"),
+  goalAmount: integer("goal_amount").notNull(),
+  currentAmount: integer("current_amount").notNull(),
+  rewards: jsonb("rewards")
+    .$type<
+      {
+        label: string;
+        amount: number;
+        highlight?: boolean;
+        cosmeticId?: string;
+      }[]
+    >()
+    .notNull()
+    .default([]),
+  updatedByEmail: text("updated_by_email"),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow()
+});
+
 export const cosmeticPosePlacements = pgTable(
   "cosmetic_pose_placements",
   {
@@ -152,6 +174,8 @@ export type CosmeticAsset = typeof cosmeticAssets.$inferSelect;
 export type NewCosmeticAsset = typeof cosmeticAssets.$inferInsert;
 export type FeatureFlag = typeof featureFlags.$inferSelect;
 export type NewFeatureFlag = typeof featureFlags.$inferInsert;
+export type DonationSettings = typeof donationSettings.$inferSelect;
+export type NewDonationSettings = typeof donationSettings.$inferInsert;
 export type CosmeticPosePlacement = typeof cosmeticPosePlacements.$inferSelect;
 export type NewCosmeticPosePlacement = typeof cosmeticPosePlacements.$inferInsert;
 export type AdminAuditLog = typeof adminAuditLogs.$inferSelect;

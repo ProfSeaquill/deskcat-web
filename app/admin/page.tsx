@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { revalidatePath } from "next/cache";
-import donationProgress from "../data/donationProgress.json";
 import { requireAdmin } from "../lib/admin";
-import { isDeskCatAnchorEditorEnabled } from "../lib/deskcatAnchorEditor.server";
+import {
+  loadDonationProgress,
+  saveDonationProgress
+} from "../lib/donations.server";
 import {
   isConstructionScreenEnabled,
   setConstructionScreenEnabled
@@ -11,6 +13,7 @@ import {
   DESKCAT_COSMETIC_CATEGORIES,
   DESKCAT_COSMETIC_OPTIONS
 } from "../lib/deskcatSprite";
+import type { DonationProgressSource, DonationReward } from "../lib/donations";
 
 function formatCurrency(amount: number, currencyCode: string) {
   return new Intl.NumberFormat("en-US", {
@@ -35,10 +38,71 @@ async function updateConstructionScreen(formData: FormData) {
   revalidatePath("/admin");
 }
 
+function parseAmount(value: FormDataEntryValue | null) {
+  const raw = typeof value === "string" ? Number(value) : Number.NaN;
+  return Number.isFinite(raw) ? Math.max(0, Math.round(raw)) : 0;
+}
+
+function parseDonationRewards(formData: FormData): DonationReward[] {
+  const rewards: DonationReward[] = [];
+
+  for (let index = 0; index < 5; index += 1) {
+    const label = formData.get(`rewardLabel${index}`);
+    const amount = parseAmount(formData.get(`rewardAmount${index}`));
+    const cosmeticId = formData.get(`rewardCosmeticId${index}`);
+    const highlight = formData.get(`rewardHighlight${index}`) === "on";
+
+    if (typeof label !== "string" || label.trim().length === 0 || amount <= 0) {
+      continue;
+    }
+
+    rewards.push({
+      label: label.trim(),
+      amount,
+      highlight,
+      cosmeticId:
+        typeof cosmeticId === "string" && cosmeticId.trim().length > 0
+          ? (cosmeticId.trim() as DonationReward["cosmeticId"])
+          : undefined
+    });
+  }
+
+  return rewards;
+}
+
+async function updateDonationProgress(formData: FormData) {
+  "use server";
+
+  const session = await requireAdmin();
+  const title = formData.get("title");
+  const actionLabel = formData.get("actionLabel");
+  const currencyCode = formData.get("currencyCode");
+
+  const input: DonationProgressSource = {
+    title: typeof title === "string" && title.trim().length > 0 ? title.trim() : "Buy DeskCat food",
+    actionLabel:
+      typeof actionLabel === "string" && actionLabel.trim().length > 0
+        ? actionLabel.trim()
+        : "Donate",
+    currencyCode:
+      typeof currencyCode === "string" && currencyCode.trim().length === 3
+        ? currencyCode.trim().toUpperCase()
+        : "USD",
+    goalAmount: Math.max(1, parseAmount(formData.get("goalAmount"))),
+    currentAmount: parseAmount(formData.get("currentAmount")),
+    rewards: parseDonationRewards(formData)
+  };
+
+  await saveDonationProgress(input, session.user?.email ?? "unknown");
+  revalidatePath("/");
+  revalidatePath("/admin");
+  revalidatePath("/api/donations/progress");
+}
+
 export default async function AdminPage() {
   const session = await requireAdmin();
-  const editorEnabled = isDeskCatAnchorEditorEnabled();
   const constructionScreenEnabled = await isConstructionScreenEnabled();
+  const donationProgress = await loadDonationProgress();
   const donationPercent =
     donationProgress.goalAmount > 0
       ? Math.min(100, Math.round((donationProgress.currentAmount / donationProgress.goalAmount) * 100))
@@ -49,9 +113,8 @@ export default async function AdminPage() {
     ["NextAuth secret", getConfiguredLabel(process.env.NEXTAUTH_SECRET)],
     ["Admin email", getConfiguredLabel(process.env.DESKCAT_ADMIN_EMAIL)],
     ["Database", getConfiguredLabel(process.env.DATABASE_URL ?? process.env.POSTGRES_URL)],
-    ["Blob storage", getConfiguredLabel(process.env.BLOB_READ_WRITE_TOKEN ?? process.env.VERCEL_OIDC_TOKEN)],
-    ["Stripe secret", getConfiguredLabel(process.env.STRIPE_SECRET_KEY)],
-    ["Anchor editor token", getConfiguredLabel(process.env.DESKCAT_ANCHOR_EDITOR_TOKEN)]
+    ["Blob storage", getConfiguredLabel(process.env.BLOB_STORE_ID ?? process.env.BLOB_READ_WRITE_TOKEN)],
+    ["Stripe secret", getConfiguredLabel(process.env.STRIPE_SECRET_KEY)]
   ];
 
   return (
@@ -67,7 +130,7 @@ export default async function AdminPage() {
                 DeskCat Admin
               </h1>
               <p className="theme-text-secondary mt-2 text-sm">
-                Signed in as {session.user?.email}. This page is read-only.
+                Signed in as {session.user?.email}.
               </p>
             </div>
 
@@ -80,7 +143,7 @@ export default async function AdminPage() {
           </div>
         </header>
 
-        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <section className="grid gap-4 md:grid-cols-3">
           <StatusCard
             label="Donation progress"
             value={`${donationPercent}%`}
@@ -92,15 +155,97 @@ export default async function AdminPage() {
             detail={`${DESKCAT_COSMETIC_CATEGORIES.length} categories`}
           />
           <StatusCard
-            label="Anchor editor"
-            value={editorEnabled ? "Enabled" : "Disabled"}
-            detail={process.env.NODE_ENV === "production" ? "Production rules" : "Local/dev rules"}
-          />
-          <StatusCard
             label="Construction"
             value={constructionScreenEnabled ? "Active" : "Inactive"}
             detail={constructionScreenEnabled ? "Homepage is hidden" : "Homepage is public"}
           />
+        </section>
+
+        <section className="theme-surface rounded-[28px] border p-6 backdrop-blur">
+          <h2 className="theme-text-primary text-2xl font-semibold">Donation Progress</h2>
+          <form action={updateDonationProgress} className="mt-5 space-y-5">
+            <div className="grid gap-4 md:grid-cols-2">
+              <TextField name="title" label="Title" defaultValue={donationProgress.title} />
+              <TextField
+                name="actionLabel"
+                label="Button label"
+                defaultValue={donationProgress.actionLabel}
+              />
+              <TextField
+                name="currencyCode"
+                label="Currency"
+                defaultValue={donationProgress.currencyCode}
+                maxLength={3}
+              />
+              <NumberField
+                name="currentAmount"
+                label="Starting/current amount"
+                defaultValue={donationProgress.currentAmount}
+              />
+              <NumberField
+                name="goalAmount"
+                label="Goal amount"
+                defaultValue={donationProgress.goalAmount}
+              />
+            </div>
+
+            <div>
+              <h3 className="theme-text-primary text-lg font-semibold">Rewards</h3>
+              <div className="mt-3 grid gap-3">
+                {Array.from({ length: 5 }).map((_, index) => {
+                  const reward = donationProgress.rewards[index];
+                  return (
+                    <div
+                      key={index}
+                      className="theme-subsurface grid gap-3 rounded-2xl border p-4 md:grid-cols-[1fr_120px_180px_auto]"
+                    >
+                      <TextField
+                        name={`rewardLabel${index}`}
+                        label={`Reward ${index + 1}`}
+                        defaultValue={reward?.label ?? ""}
+                      />
+                      <NumberField
+                        name={`rewardAmount${index}`}
+                        label="Amount"
+                        defaultValue={reward?.amount ?? ""}
+                      />
+                      <label className="theme-text-secondary block text-sm font-medium">
+                        Cosmetic
+                        <select
+                          name={`rewardCosmeticId${index}`}
+                          defaultValue={reward?.cosmeticId ?? ""}
+                          className="theme-input mt-2 w-full rounded-xl border px-3 py-2"
+                        >
+                          <option value="">None</option>
+                          {DESKCAT_COSMETIC_OPTIONS.map((cosmetic) => (
+                            <option key={cosmetic.id} value={cosmetic.id}>
+                              {cosmetic.label}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <label className="theme-text-secondary flex items-end gap-2 pb-2 text-sm font-medium">
+                        <input
+                          type="checkbox"
+                          name={`rewardHighlight${index}`}
+                          defaultChecked={reward?.highlight === true}
+                          className="h-4 w-4 accent-sky-300"
+                        />
+                        Highlight
+                      </label>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              className="theme-button-primary theme-hover-highlight inline-flex items-center justify-center rounded-2xl border px-5 py-3 font-semibold transition"
+            >
+              Save donation settings
+            </button>
+          </form>
         </section>
 
         <section className="grid gap-6 lg:grid-cols-[1fr_1fr]">
@@ -164,21 +309,12 @@ export default async function AdminPage() {
         <section className="theme-surface rounded-[28px] border p-6 backdrop-blur">
           <h2 className="theme-text-primary text-2xl font-semibold">Tools</h2>
           <div className="mt-5 flex flex-wrap gap-3">
-            {editorEnabled ? (
-              <Link
-                href="/admin/editor"
-                className="theme-button-primary theme-hover-highlight inline-flex items-center justify-center rounded-2xl border px-5 py-3 font-semibold transition"
-              >
-                Open anchor editor
-              </Link>
-            ) : (
-              <Link
-                href="/admin/editor"
-                className="theme-button-primary theme-hover-highlight inline-flex items-center justify-center rounded-2xl border px-5 py-3 font-semibold transition"
-              >
-                Open admin editor
-              </Link>
-            )}
+            <Link
+              href="/admin/editor"
+              className="theme-button-primary theme-hover-highlight inline-flex items-center justify-center rounded-2xl border px-5 py-3 font-semibold transition"
+            >
+              Open editor
+            </Link>
             <Link
               href="/admin/assets"
               className="theme-button-secondary theme-hover-highlight inline-flex items-center justify-center rounded-2xl border px-5 py-3 font-semibold transition"
@@ -189,6 +325,55 @@ export default async function AdminPage() {
         </section>
       </div>
     </main>
+  );
+}
+
+function TextField({
+  name,
+  label,
+  defaultValue,
+  maxLength
+}: {
+  name: string;
+  label: string;
+  defaultValue: string | number;
+  maxLength?: number;
+}) {
+  return (
+    <label className="theme-text-secondary block text-sm font-medium">
+      {label}
+      <input
+        name={name}
+        type="text"
+        defaultValue={defaultValue}
+        maxLength={maxLength}
+        className="theme-input mt-2 w-full rounded-xl border px-3 py-2"
+      />
+    </label>
+  );
+}
+
+function NumberField({
+  name,
+  label,
+  defaultValue
+}: {
+  name: string;
+  label: string;
+  defaultValue: string | number;
+}) {
+  return (
+    <label className="theme-text-secondary block text-sm font-medium">
+      {label}
+      <input
+        name={name}
+        type="number"
+        min="0"
+        step="1"
+        defaultValue={defaultValue}
+        className="theme-input mt-2 w-full rounded-xl border px-3 py-2"
+      />
+    </label>
   );
 }
 
