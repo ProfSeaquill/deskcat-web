@@ -306,34 +306,15 @@ export default async function AdminPage() {
           )}
         </section>
 
-        <section className="grid gap-6 lg:grid-cols-[1fr_1fr]">
-          <div className="theme-surface rounded-[28px] border p-6 backdrop-blur">
-            <h2 className="theme-text-primary text-2xl font-semibold">Environment</h2>
-            <div className="mt-5 divide-y divide-white/10 overflow-hidden rounded-2xl border border-white/10">
-              {envRows.map(([label, value]) => (
-                <div key={label} className="flex items-center justify-between gap-4 px-4 py-3 text-sm">
-                  <span className="theme-text-secondary">{label}</span>
-                  <span className="theme-text-primary font-semibold">{value}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="theme-surface rounded-[28px] border p-6 backdrop-blur">
-            <h2 className="theme-text-primary text-2xl font-semibold">Cosmetics</h2>
-            <div className="mt-5 grid gap-3">
-              {DESKCAT_COSMETIC_OPTIONS.map((cosmetic) => (
-                <div
-                  key={cosmetic.id}
-                  className="theme-subsurface rounded-2xl border px-4 py-3 text-sm"
-                >
-                  <div className="theme-text-primary font-semibold">{cosmetic.label}</div>
-                  <div className="theme-text-secondary mt-1">
-                    {cosmetic.id} · {cosmetic.category} · {cosmetic.anchorSlot}
-                  </div>
-                </div>
-              ))}
-            </div>
+        <section className="theme-surface rounded-[28px] border p-6 backdrop-blur">
+          <h2 className="theme-text-primary text-2xl font-semibold">Environment</h2>
+          <div className="mt-5 divide-y divide-white/10 overflow-hidden rounded-2xl border border-white/10">
+            {envRows.map(([label, value]) => (
+              <div key={label} className="flex items-center justify-between gap-4 px-4 py-3 text-sm">
+                <span className="theme-text-secondary">{label}</span>
+                <span className="theme-text-primary font-semibold">{value}</span>
+              </div>
+            ))}
           </div>
         </section>
 
