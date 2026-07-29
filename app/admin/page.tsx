@@ -182,6 +182,33 @@ export default async function AdminPage() {
         </section>
 
         <section className="theme-surface rounded-[28px] border p-6 backdrop-blur">
+          <h2 className="theme-text-primary text-2xl font-semibold">Construction Screen</h2>
+          <p className="theme-text-secondary mt-2 text-sm">
+            Control whether visitors see the construction screen or the DeskCat app homepage.
+          </p>
+          <form action={updateConstructionScreen} className="mt-5 flex flex-wrap gap-3">
+            <button
+              type="submit"
+              name="enabled"
+              value="true"
+              disabled={constructionScreenEnabled}
+              className="theme-button-secondary theme-hover-highlight inline-flex items-center justify-center rounded-2xl border px-5 py-3 font-semibold transition disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Activate construction screen
+            </button>
+            <button
+              type="submit"
+              name="enabled"
+              value="false"
+              disabled={!constructionScreenEnabled}
+              className="theme-button-primary theme-hover-highlight inline-flex items-center justify-center rounded-2xl border px-5 py-3 font-semibold transition disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Deactivate construction screen
+            </button>
+          </form>
+        </section>
+
+        <section className="theme-surface rounded-[28px] border p-6 backdrop-blur">
           <h2 className="theme-text-primary text-2xl font-semibold">Donation Progress</h2>
           <form action={updateDonationProgress} className="mt-5 space-y-5">
             <div className="grid gap-4 md:grid-cols-2">
@@ -316,33 +343,6 @@ export default async function AdminPage() {
               </div>
             ))}
           </div>
-        </section>
-
-        <section className="theme-surface rounded-[28px] border p-6 backdrop-blur">
-          <h2 className="theme-text-primary text-2xl font-semibold">Construction Screen</h2>
-          <p className="theme-text-secondary mt-2 text-sm">
-            Control whether visitors see the construction screen or the DeskCat app homepage.
-          </p>
-          <form action={updateConstructionScreen} className="mt-5 flex flex-wrap gap-3">
-            <button
-              type="submit"
-              name="enabled"
-              value="true"
-              disabled={constructionScreenEnabled}
-              className="theme-button-secondary theme-hover-highlight inline-flex items-center justify-center rounded-2xl border px-5 py-3 font-semibold transition disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              Activate construction screen
-            </button>
-            <button
-              type="submit"
-              name="enabled"
-              value="false"
-              disabled={!constructionScreenEnabled}
-              className="theme-button-primary theme-hover-highlight inline-flex items-center justify-center rounded-2xl border px-5 py-3 font-semibold transition disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              Deactivate construction screen
-            </button>
-          </form>
         </section>
 
         <section className="theme-surface rounded-[28px] border p-6 backdrop-blur">

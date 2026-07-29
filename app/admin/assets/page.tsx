@@ -8,6 +8,20 @@ import AssetUploadForm from "./AssetUploadForm";
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
+function formatAssetLoadError(error: unknown) {
+  const message = error instanceof Error ? error.message : "";
+
+  if (
+    message.includes("accessible") ||
+    message.includes("updated_by_email") ||
+    message.includes("updated_at")
+  ) {
+    return "Asset access controls need the latest database migration. Run `npm run db:migrate`, then reload this page.";
+  }
+
+  return "Could not load assets.";
+}
+
 async function loadAssets() {
   try {
     const assets = await getDb()
@@ -20,7 +34,7 @@ async function loadAssets() {
   } catch (error) {
     return {
       assets: [],
-      error: error instanceof Error ? error.message : "Could not load assets."
+      error: formatAssetLoadError(error)
     };
   }
 }
