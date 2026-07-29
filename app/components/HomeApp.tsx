@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import ProgressionMeter from "./ProgressionMeter";
@@ -41,10 +41,22 @@ export default function HomeApp() {
     () => DEFAULT_DESKCAT_COSMETICS
   );
 
+  const refreshDonationProgress = useCallback(async () => {
+    try {
+      const response = await fetch("/api/donations/progress", { cache: "no-store" });
+      if (!response.ok) return;
+
+      const data = (await response.json()) as DonationProgressSnapshot;
+      setDonationProgress(data);
+    } catch {
+      // Keep the current snapshot when the API is unavailable.
+    }
+  }, []);
+
   useEffect(() => {
     let isCancelled = false;
 
-    async function loadDonationProgress() {
+    async function loadInitialDonationProgress() {
       try {
         const response = await fetch("/api/donations/progress", { cache: "no-store" });
         if (!response.ok) return;
@@ -58,7 +70,7 @@ export default function HomeApp() {
       }
     }
 
-    void loadDonationProgress();
+    void loadInitialDonationProgress();
 
     return () => {
       isCancelled = true;
@@ -197,6 +209,7 @@ export default function HomeApp() {
             goalAmount={donationProgress.goalAmount}
             currencyCode={donationProgress.currencyCode}
             rewards={donationProgress.rewards}
+            onDonationConfirmed={refreshDonationProgress}
           />
         </aside>
       </div>

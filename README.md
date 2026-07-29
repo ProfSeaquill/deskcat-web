@@ -18,9 +18,12 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 
 ## Stripe donations
 
-Copy `.env.example` to `.env.local`, then set `STRIPE_SECRET_KEY` to a Stripe test-mode
-secret key. Set `NEXT_PUBLIC_APP_URL` to the deployed app URL in production. The donation
-button creates a one-time Stripe-hosted Checkout Session; secret keys never reach the browser.
+DeskCat can keep donations disabled locally and configure them only in hosted environments.
+Set `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, and `NEXT_PUBLIC_APP_URL` in the deployment
+environment. The webhook endpoint is `/api/donations/webhook`; subscribe it to
+`checkout.session.completed` and `checkout.session.async_payment_succeeded`. Completed
+payments are recorded idempotently and update the community total. Secret keys never reach
+the browser.
 
 ## Database
 

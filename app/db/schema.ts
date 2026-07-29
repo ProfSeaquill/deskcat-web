@@ -109,6 +109,7 @@ export const donationSettings = pgTable("donation_settings", {
   currencyCode: varchar("currency_code", { length: 3 }).notNull().default("USD"),
   goalAmount: integer("goal_amount").notNull(),
   currentAmount: integer("current_amount").notNull(),
+  currentAmountCents: integer("current_amount_cents").notNull().default(0),
   rewards: jsonb("rewards")
     .$type<
       {
@@ -123,6 +124,23 @@ export const donationSettings = pgTable("donation_settings", {
   updatedByEmail: text("updated_by_email"),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow()
 });
+
+export const donationPayments = pgTable(
+  "donation_payments",
+  {
+    checkoutSessionId: varchar("checkout_session_id", { length: 255 }).primaryKey(),
+    paymentIntentId: varchar("payment_intent_id", { length: 255 }),
+    stripeEventId: varchar("stripe_event_id", { length: 255 }),
+    amountCents: integer("amount_cents").notNull(),
+    currencyCode: varchar("currency_code", { length: 3 }).notNull(),
+    receivedAt: timestamp("received_at", { withTimezone: true }).notNull().defaultNow()
+  },
+  (table) => [
+    uniqueIndex("donation_payments_payment_intent_idx").on(table.paymentIntentId),
+    uniqueIndex("donation_payments_stripe_event_idx").on(table.stripeEventId),
+    index("donation_payments_received_at_idx").on(table.receivedAt)
+  ]
+);
 
 export const cosmeticPosePlacements = pgTable(
   "cosmetic_pose_placements",
@@ -176,6 +194,8 @@ export type FeatureFlag = typeof featureFlags.$inferSelect;
 export type NewFeatureFlag = typeof featureFlags.$inferInsert;
 export type DonationSettings = typeof donationSettings.$inferSelect;
 export type NewDonationSettings = typeof donationSettings.$inferInsert;
+export type DonationPayment = typeof donationPayments.$inferSelect;
+export type NewDonationPayment = typeof donationPayments.$inferInsert;
 export type CosmeticPosePlacement = typeof cosmeticPosePlacements.$inferSelect;
 export type NewCosmeticPosePlacement = typeof cosmeticPosePlacements.$inferInsert;
 export type AdminAuditLog = typeof adminAuditLogs.$inferSelect;

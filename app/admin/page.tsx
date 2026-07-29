@@ -14,6 +14,9 @@ import {
   DESKCAT_COSMETIC_OPTIONS
 } from "../lib/deskcatSprite";
 import type { DonationProgressSource, DonationReward } from "../lib/donations";
+import { loadRecentDonations } from "../lib/donation-payments.server";
+
+const DONATION_REWARD_ROW_COUNT = 3;
 
 function formatCurrency(amount: number, currencyCode: string) {
   return new Intl.NumberFormat("en-US", {
@@ -25,6 +28,21 @@ function formatCurrency(amount: number, currencyCode: string) {
 
 function getConfiguredLabel(value: string | undefined) {
   return value && value.length > 0 ? "Configured" : "Missing";
+}
+
+function formatDonationAmount(amountCents: number, currencyCode: string) {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: currencyCode
+  }).format(amountCents / 100);
+}
+
+function formatDonationTime(value: Date) {
+  return new Intl.DateTimeFormat("en-US", {
+    dateStyle: "medium",
+    timeStyle: "short",
+    timeZone: "America/Los_Angeles"
+  }).format(value);
 }
 
 async function updateConstructionScreen(formData: FormData) {
@@ -46,7 +64,7 @@ function parseAmount(value: FormDataEntryValue | null) {
 function parseDonationRewards(formData: FormData): DonationReward[] {
   const rewards: DonationReward[] = [];
 
-  for (let index = 0; index < 5; index += 1) {
+  for (let index = 0; index < DONATION_REWARD_ROW_COUNT; index += 1) {
     const label = formData.get(`rewardLabel${index}`);
     const amount = parseAmount(formData.get(`rewardAmount${index}`));
     const cosmeticId = formData.get(`rewardCosmeticId${index}`);
@@ -103,6 +121,7 @@ export default async function AdminPage() {
   const session = await requireAdmin();
   const constructionScreenEnabled = await isConstructionScreenEnabled();
   const donationProgress = await loadDonationProgress();
+  const recentDonations = await loadRecentDonations();
   const donationPercent =
     donationProgress.goalAmount > 0
       ? Math.min(100, Math.round((donationProgress.currentAmount / donationProgress.goalAmount) * 100))
@@ -114,7 +133,8 @@ export default async function AdminPage() {
     ["Admin email", getConfiguredLabel(process.env.DESKCAT_ADMIN_EMAIL)],
     ["Database", getConfiguredLabel(process.env.DATABASE_URL ?? process.env.POSTGRES_URL)],
     ["Blob storage", getConfiguredLabel(process.env.BLOB_STORE_ID ?? process.env.BLOB_READ_WRITE_TOKEN)],
-    ["Stripe secret", getConfiguredLabel(process.env.STRIPE_SECRET_KEY)]
+    ["Stripe secret", getConfiguredLabel(process.env.STRIPE_SECRET_KEY)],
+    ["Stripe webhook", getConfiguredLabel(process.env.STRIPE_WEBHOOK_SECRET)]
   ];
 
   return (
@@ -192,7 +212,7 @@ export default async function AdminPage() {
             <div>
               <h3 className="theme-text-primary text-lg font-semibold">Rewards</h3>
               <div className="mt-3 grid gap-3">
-                {Array.from({ length: 5 }).map((_, index) => {
+                {Array.from({ length: DONATION_REWARD_ROW_COUNT }).map((_, index) => {
                   const reward = donationProgress.rewards[index];
                   return (
                     <div
@@ -246,6 +266,44 @@ export default async function AdminPage() {
               Save donation settings
             </button>
           </form>
+        </section>
+
+        <section className="theme-surface rounded-[28px] border p-6 backdrop-blur">
+          <h2 className="theme-text-primary text-2xl font-semibold">Donation Log</h2>
+          <p className="theme-text-secondary mt-2 text-sm">
+            Most recent confirmed donations. Times are shown in Pacific time.
+          </p>
+
+          {recentDonations.length > 0 ? (
+            <div className="mt-5 overflow-hidden rounded-2xl border border-white/10">
+              <div className="theme-text-tertiary grid grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)] gap-4 border-b border-white/10 px-4 py-3 text-xs font-semibold uppercase tracking-[0.16em]">
+                <span>Amount</span>
+                <span>Time</span>
+              </div>
+              <div className="divide-y divide-white/10">
+                {recentDonations.map((donation) => (
+                  <div
+                    key={donation.checkoutSessionId}
+                    className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)] gap-4 px-4 py-3 text-sm"
+                  >
+                    <span className="theme-text-primary font-semibold">
+                      {formatDonationAmount(donation.amountCents, donation.currencyCode)}
+                    </span>
+                    <time
+                      dateTime={donation.receivedAt.toISOString()}
+                      className="theme-text-secondary"
+                    >
+                      {formatDonationTime(donation.receivedAt)}
+                    </time>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <p className="theme-text-secondary mt-5 rounded-2xl border border-white/10 px-4 py-5 text-sm">
+              No confirmed donations yet.
+            </p>
+          )}
         </section>
 
         <section className="grid gap-6 lg:grid-cols-[1fr_1fr]">

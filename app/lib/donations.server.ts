@@ -30,7 +30,7 @@ export async function loadDonationProgress() {
         actionLabel: settings.actionLabel,
         currencyCode: settings.currencyCode,
         goalAmount: settings.goalAmount,
-        currentAmount: settings.currentAmount,
+        currentAmount: settings.currentAmountCents / 100,
         rewards: settings.rewards.map((reward) => ({
           label: reward.label,
           amount: reward.amount,
@@ -73,6 +73,7 @@ export async function saveDonationProgress(
       currencyCode: snapshot.currencyCode,
       goalAmount: Math.round(snapshot.goalAmount),
       currentAmount: Math.round(snapshot.currentAmount),
+      currentAmountCents: Math.round(snapshot.currentAmount * 100),
       rewards,
       updatedByEmail: actorEmail,
       updatedAt: new Date()
@@ -85,6 +86,7 @@ export async function saveDonationProgress(
         currencyCode: snapshot.currencyCode,
         goalAmount: Math.round(snapshot.goalAmount),
         currentAmount: Math.round(snapshot.currentAmount),
+        currentAmountCents: Math.round(snapshot.currentAmount * 100),
         rewards,
         updatedByEmail: actorEmail,
         updatedAt: new Date()

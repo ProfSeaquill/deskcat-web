@@ -21,6 +21,7 @@ type ProgressionMeterProps = {
   goalAmount: number;
   currencyCode?: string;
   rewards: RewardStop[];
+  onDonationConfirmed?: () => void | Promise<void>;
 };
 
 function clampPercent(value: number) {
@@ -41,14 +42,17 @@ export default function ProgressionMeter({
   currentAmount,
   goalAmount,
   currencyCode = "USD",
-  rewards
+  rewards,
+  onDonationConfirmed
 }: ProgressionMeterProps) {
   const [openRewardKey, setOpenRewardKey] = useState<string | null>(null);
   const [isDonationInfoOpen, setIsDonationInfoOpen] = useState(false);
   const [donationAmount, setDonationAmount] = useState("5");
   const [donationError, setDonationError] = useState<string | null>(null);
   const [isRedirecting, setIsRedirecting] = useState(false);
-  const [returnStatus, setReturnStatus] = useState<"success" | "cancelled" | null>(null);
+  const [returnStatus, setReturnStatus] = useState<
+    "verifying" | "success" | "processing" | "cancelled" | "error" | null
+  >(null);
   const meterRef = useRef<HTMLElement>(null);
   const progress = clampPercent(goalAmount > 0 ? (currentAmount / goalAmount) * 100 : 0);
   const fillHeight = progress === 0 ? "0%" : `calc(${progress}% - 0.5rem)`;
@@ -57,9 +61,72 @@ export default function ProgressionMeter({
   const remainingLabel = formatCurrency(Math.max(goalAmount - currentAmount, 0), currencyCode);
 
   useEffect(() => {
-    const donationStatus = new URLSearchParams(window.location.search).get("donation");
-    if (donationStatus === "success" || donationStatus === "cancelled") {
-      setReturnStatus(donationStatus);
+    let isCancelled = false;
+    const url = new URL(window.location.href);
+    const donationStatus = url.searchParams.get("donation");
+    const sessionId = url.searchParams.get("session_id");
+
+    function clearDonationQuery() {
+      url.searchParams.delete("donation");
+      url.searchParams.delete("session_id");
+      window.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
+    }
+
+    if (donationStatus === "cancelled") {
+      setReturnStatus("cancelled");
+      clearDonationQuery();
+    } else if (donationStatus === "success") {
+      setReturnStatus("verifying");
+
+      async function verifyDonation() {
+        if (!sessionId) {
+          setReturnStatus("error");
+          clearDonationQuery();
+          return;
+        }
+
+        try {
+          for (let attempt = 0; attempt < 4; attempt += 1) {
+            const response = await fetch(
+              `/api/donations/status?session_id=${encodeURIComponent(sessionId)}`,
+              { cache: "no-store" }
+            );
+            const data = (await response.json()) as {
+              status?: "complete" | "processing" | "open";
+              error?: string;
+            };
+
+            if (!response.ok) {
+              throw new Error(data.error ?? "Unable to verify this donation.");
+            }
+
+            if (data.status === "complete") {
+              if (!isCancelled) {
+                setReturnStatus("success");
+                await onDonationConfirmed?.();
+                clearDonationQuery();
+              }
+              return;
+            }
+
+            if (attempt < 3) {
+              await new Promise((resolve) => window.setTimeout(resolve, 1500));
+            }
+          }
+
+          if (!isCancelled) {
+            setReturnStatus("processing");
+            clearDonationQuery();
+          }
+        } catch {
+          if (!isCancelled) {
+            setReturnStatus("error");
+            clearDonationQuery();
+          }
+        }
+      }
+
+      void verifyDonation();
     }
 
     function handlePointerDown(event: PointerEvent) {
@@ -80,10 +147,11 @@ export default function ProgressionMeter({
     document.addEventListener("keydown", handleKeyDown);
 
     return () => {
+      isCancelled = true;
       document.removeEventListener("pointerdown", handlePointerDown);
       document.removeEventListener("keydown", handleKeyDown);
     };
-  }, []);
+  }, [onDonationConfirmed]);
 
   async function startDonation() {
     const amount = Number(donationAmount);
@@ -294,14 +362,31 @@ export default function ProgressionMeter({
             {donationError}
           </p>
         )}
+        {returnStatus === "verifying" && (
+          <p role="status" className="theme-text-secondary text-sm">
+            Confirming your donation with Stripe…
+          </p>
+        )}
         {returnStatus === "success" && (
           <p role="status" className="theme-text-secondary text-sm">
-            Thanks! Stripe received your donation.
+            Thank you! Your donation has been confirmed and added to the community total.
+          </p>
+        )}
+        {returnStatus === "processing" && (
+          <p role="status" className="theme-text-secondary text-sm">
+            Stripe is still processing your donation. The community total will update
+            automatically once payment is confirmed.
           </p>
         )}
         {returnStatus === "cancelled" && (
           <p role="status" className="theme-text-secondary text-sm">
             Donation cancelled. You were not charged.
+          </p>
+        )}
+        {returnStatus === "error" && (
+          <p role="status" className="theme-text-secondary text-sm">
+            We couldn&apos;t update the community total yet. Stripe will retry automatically,
+            so please don&apos;t submit the same donation again.
           </p>
         )}
       </div>
