@@ -81,7 +81,10 @@ export const cosmeticAssets = pgTable(
     width: integer("width").notNull(),
     height: integer("height").notNull(),
     checksum: text("checksum"),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow()
+    accessible: boolean("accessible").notNull().default(true),
+    updatedByEmail: text("updated_by_email"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow()
   },
   (table) => [
     index("cosmetic_assets_cosmetic_id_idx").on(table.cosmeticId),

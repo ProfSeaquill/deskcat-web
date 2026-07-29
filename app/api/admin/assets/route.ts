@@ -121,6 +121,12 @@ export async function POST(request: Request) {
     return jsonError("Choose a valid pose.", 400);
   }
 
+  const accessibleValue = parseOptionalString(formData.get("accessible")) ?? "true";
+  if (accessibleValue !== "true" && accessibleValue !== "false") {
+    return jsonError("Choose a valid access setting.", 400);
+  }
+  const accessible = accessibleValue === "true";
+
   const arrayBuffer = await file.arrayBuffer();
   const bytes = new Uint8Array(arrayBuffer);
   const dimensions = parsePngDimensions(bytes);
@@ -173,7 +179,9 @@ export async function POST(request: Request) {
         byteSize: file.size,
         width: dimensions.width,
         height: dimensions.height,
-        checksum
+        checksum,
+        accessible,
+        updatedByEmail: session.user.email
       })
       .returning();
 
@@ -190,7 +198,8 @@ export async function POST(request: Request) {
         pathname: blob.pathname,
         byteSize: file.size,
         width: dimensions.width,
-        height: dimensions.height
+        height: dimensions.height,
+        accessible
       }
     });
 
