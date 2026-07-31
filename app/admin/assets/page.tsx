@@ -4,9 +4,90 @@ import { desc, eq } from "drizzle-orm";
 import { getDb } from "../../db";
 import { adminAuditLogs, cosmeticAssets } from "../../db/schema";
 import { requireAdmin } from "../../lib/admin";
+import { DESKCAT_COSMETIC_OPTIONS } from "../../lib/deskcatSprite";
 import AssetUploadForm from "./AssetUploadForm";
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+type ExistingAsset =
+  | {
+      source: "built-in";
+      id: string;
+      cosmeticId: string;
+      label: string;
+      role: string;
+      storageKey: string;
+      url: string;
+      width: number;
+      height: number;
+      byteSize: null;
+      accessible: true;
+    }
+  | {
+      source: "database";
+      id: string;
+      cosmeticId: string;
+      label: string;
+      role: string;
+      storageKey: string;
+      url: string;
+      width: number;
+      height: number;
+      byteSize: number;
+      accessible: boolean;
+    };
+
+function loadBuiltInAssets(): ExistingAsset[] {
+  return DESKCAT_COSMETIC_OPTIONS.flatMap((cosmetic) => {
+    const assetsByUrl = new Map<
+      string,
+      {
+        roles: string[];
+        width: number;
+        height: number;
+      }
+    >();
+
+    function addAsset(role: string, asset: { src: string; width: number; height: number }) {
+      const existing = assetsByUrl.get(asset.src);
+      if (existing) {
+        existing.roles.push(role);
+        return;
+      }
+
+      assetsByUrl.set(asset.src, {
+        roles: [role],
+        width: asset.width,
+        height: asset.height
+      });
+    }
+
+    addAsset("preview", cosmetic.previewSrc);
+    addAsset("render", cosmetic.renderSrc);
+
+    Object.entries(cosmetic.renderSrcByView ?? {}).forEach(([view, asset]) => {
+      if (asset) addAsset(`render · ${view}`, asset);
+    });
+
+    Object.entries(cosmetic.poseRenderSrc ?? {}).forEach(([pose, asset]) => {
+      if (asset) addAsset(`pose · ${pose}`, asset);
+    });
+
+    return Array.from(assetsByUrl.entries()).map(([url, asset], index) => ({
+      source: "built-in" as const,
+      id: `built-in:${cosmetic.id}:${index}`,
+      cosmeticId: cosmetic.id,
+      label: cosmetic.label,
+      role: asset.roles.join(", "),
+      storageKey: url,
+      url,
+      width: asset.width,
+      height: asset.height,
+      byteSize: null,
+      accessible: true as const
+    }));
+  });
+}
 
 function formatAssetLoadError(error: unknown) {
   const message = error instanceof Error ? error.message : "";
@@ -88,6 +169,22 @@ async function updateAssetAccess(formData: FormData) {
 export default async function AdminAssetsPage() {
   await requireAdmin();
   const { assets, error } = await loadAssets();
+  const existingAssets: ExistingAsset[] = [
+    ...loadBuiltInAssets(),
+    ...assets.map((asset) => ({
+      source: "database" as const,
+      id: asset.id,
+      cosmeticId: asset.cosmeticId,
+      label: asset.cosmeticId,
+      role: `${asset.purpose} · ${asset.poseId ?? "all poses"} · ${asset.assetView ?? "default view"}`,
+      storageKey: asset.storageKey,
+      url: asset.publicUrl,
+      width: asset.width,
+      height: asset.height,
+      byteSize: asset.byteSize,
+      accessible: asset.accessible
+    }))
+  ];
 
   return (
     <main className="min-h-screen px-6 py-10">
@@ -122,17 +219,18 @@ export default async function AdminAssetsPage() {
             <div>
               <h2 className="theme-text-primary text-2xl font-semibold">Existing Assets</h2>
               <p className="theme-text-secondary mt-2 text-sm">
-                Change whether uploaded assets are available for DeskCat to use.
+                Built-in app assets are listed for reference. Uploaded assets can be hidden or made
+                available in the app.
               </p>
             </div>
-            <span className="theme-text-tertiary text-sm">{assets.length} assets</span>
+            <span className="theme-text-tertiary text-sm">{existingAssets.length} assets</span>
           </div>
 
           {error ? (
             <p className="mt-5 rounded-2xl border border-red-400/40 bg-red-950/30 p-4 text-sm text-red-200">
               {error}
             </p>
-          ) : assets.length === 0 ? (
+          ) : existingAssets.length === 0 ? (
             <p className="theme-text-secondary mt-5 text-sm">No assets have been uploaded yet.</p>
           ) : (
             <div className="mt-5 overflow-x-auto">
@@ -147,12 +245,15 @@ export default async function AdminAssetsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {assets.map((asset) => (
+                  {existingAssets.map((asset) => (
                     <tr key={asset.id} className="theme-subsurface">
                       <td className="rounded-l-2xl border-y border-l px-3 py-3">
-                        <div className="theme-text-primary font-semibold">{asset.cosmeticId}</div>
+                        <div className="theme-text-primary font-semibold">{asset.label}</div>
+                        <div className="theme-text-tertiary mt-1 text-xs">
+                          {asset.cosmeticId} · {asset.source === "built-in" ? "built in" : "uploaded"}
+                        </div>
                         <a
-                          href={asset.publicUrl}
+                          href={asset.url}
                           target="_blank"
                           rel="noreferrer"
                           className="theme-link mt-1 block max-w-[260px] truncate text-xs"
@@ -161,35 +262,40 @@ export default async function AdminAssetsPage() {
                         </a>
                       </td>
                       <td className="border-y px-3 py-3">
-                        <div>{asset.purpose}</div>
-                        <div className="theme-text-tertiary text-xs">
-                          {asset.poseId ?? "all poses"} · {asset.assetView ?? "default view"}
-                        </div>
+                        {asset.role}
                       </td>
                       <td className="border-y px-3 py-3">
                         {asset.width} x {asset.height}
-                        <div className="theme-text-tertiary text-xs">
-                          {Math.round(asset.byteSize / 1024)} KB
-                        </div>
+                        {asset.byteSize === null ? (
+                          <div className="theme-text-tertiary text-xs">bundled file</div>
+                        ) : (
+                          <div className="theme-text-tertiary text-xs">
+                            {Math.round(asset.byteSize / 1024)} KB
+                          </div>
+                        )}
                       </td>
                       <td className="border-y px-3 py-3">
-                        <form action={updateAssetAccess} className="flex items-center gap-2">
-                          <input type="hidden" name="assetId" value={asset.id} />
-                          <select
-                            name="accessible"
-                            defaultValue={asset.accessible ? "true" : "false"}
-                            className="theme-input w-full min-w-[150px] rounded-xl border px-3 py-2"
-                          >
-                            <option value="true">Accessible</option>
-                            <option value="false">Hidden</option>
-                          </select>
-                          <button
-                            type="submit"
-                            className="theme-button-secondary theme-hover-highlight rounded-xl border px-3 py-2 text-sm font-semibold transition"
-                          >
-                            Save
-                          </button>
-                        </form>
+                        {asset.source === "database" ? (
+                          <form action={updateAssetAccess} className="flex items-center gap-2">
+                            <input type="hidden" name="assetId" value={asset.id} />
+                            <select
+                              name="accessible"
+                              defaultValue={asset.accessible ? "true" : "false"}
+                              className="theme-input w-full min-w-[150px] rounded-xl border px-3 py-2"
+                            >
+                              <option value="true">Accessible</option>
+                              <option value="false">Hidden</option>
+                            </select>
+                            <button
+                              type="submit"
+                              className="theme-button-secondary theme-hover-highlight rounded-xl border px-3 py-2 text-sm font-semibold transition"
+                            >
+                              Save
+                            </button>
+                          </form>
+                        ) : (
+                          <span className="theme-text-secondary text-sm">Always available</span>
+                        )}
                       </td>
                       <td className="rounded-r-2xl border-y border-r px-3 py-3">
                         <span

@@ -1,23 +1,26 @@
 import { createHash, randomUUID } from "node:crypto";
 import { put } from "@vercel/blob";
-import { desc } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { getDb } from "../../../db";
 import { adminAuditLogs, cosmeticAssets, cosmetics } from "../../../db/schema";
 import { getAdminSession } from "../../../lib/admin";
 import {
-  getDeskCatCosmetic,
-  isDeskCatCosmeticId,
-  type DeskCatCosmeticId
+  DESKCAT_COSMETIC_OPTIONS,
+  type DeskCatCosmeticCategory
 } from "../../../lib/deskcatSprite";
+import type { DeskCatAnchorSlotId } from "../../../lib/deskcatAnchors";
 
 export const runtime = "nodejs";
 
 const MAX_UPLOAD_BYTES = 2 * 1024 * 1024;
 const PNG_SIGNATURE = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
 const VALID_PURPOSES = new Set(["preview", "render"]);
+const VALID_CATEGORIES = new Set(["head", "neck", "tail", "glasses"]);
+const VALID_ANCHOR_SLOTS = new Set(["eyes", "head", "neck", "tail"]);
 const VALID_ASSET_VIEWS = new Set(["front", "threeQuarter"]);
 const VALID_POSE_IDS = new Set(["logo", "playing", "reading", "sleeping", "sitting", "walking"]);
+const COSMETIC_ID_PATTERN = /^[a-z0-9][a-z0-9-]{0,79}$/;
 
 function jsonError(message: string, status: number) {
   return NextResponse.json({ error: message }, { status });
@@ -101,9 +104,33 @@ export async function POST(request: Request) {
     return jsonError("Only PNG uploads are supported for now.", 400);
   }
 
+  const cosmeticName = parseOptionalString(formData.get("cosmeticName"));
+  if (!cosmeticName || cosmeticName.length > 120) {
+    return jsonError("Enter a cosmetic name up to 120 characters.", 400);
+  }
+
   const cosmeticId = parseOptionalString(formData.get("cosmeticId"));
-  if (!isDeskCatCosmeticId(cosmeticId)) {
-    return jsonError("Choose a valid DeskCat cosmetic.", 400);
+  if (!cosmeticId || !COSMETIC_ID_PATTERN.test(cosmeticId)) {
+    return jsonError("Enter a cosmetic ID with lowercase letters, numbers, and dashes.", 400);
+  }
+
+  if (DESKCAT_COSMETIC_OPTIONS.some((cosmetic) => cosmetic.id === cosmeticId)) {
+    return jsonError("That cosmetic ID is already used by a built-in cosmetic.", 409);
+  }
+
+  const description = parseOptionalString(formData.get("description")) ?? "";
+  if (description.length > 500) {
+    return jsonError("Description must be 500 characters or fewer.", 400);
+  }
+
+  const category = parseOptionalString(formData.get("category")) ?? "head";
+  if (!VALID_CATEGORIES.has(category)) {
+    return jsonError("Choose a valid cosmetic category.", 400);
+  }
+
+  const anchorSlot = parseOptionalString(formData.get("anchorSlot")) ?? "head";
+  if (!VALID_ANCHOR_SLOTS.has(anchorSlot)) {
+    return jsonError("Choose a valid anchor slot.", 400);
   }
 
   const purpose = parseOptionalString(formData.get("purpose")) ?? "render";
@@ -134,11 +161,21 @@ export async function POST(request: Request) {
     return jsonError("Upload must be a valid PNG image.", 400);
   }
 
-  const currentCosmetic = getDeskCatCosmetic(cosmeticId as DeskCatCosmeticId);
   const checksum = createHash("sha256").update(bytes).digest("hex");
   const pathname = `admin/cosmetics/${cosmeticId}/${randomUUID()}.png`;
 
   try {
+    const db = getDb();
+    const [existingCosmetic] = await db
+      .select({ id: cosmetics.id })
+      .from(cosmetics)
+      .where(eq(cosmetics.id, cosmeticId))
+      .limit(1);
+
+    if (existingCosmetic) {
+      return jsonError("That cosmetic ID already exists. Choose a different ID.", 409);
+    }
+
     const blob = await put(pathname, arrayBuffer, {
       access: "private",
       contentType: "image/png",
@@ -146,23 +183,21 @@ export async function POST(request: Request) {
       ...blobCredentials
     });
 
-    const db = getDb();
     await db
       .insert(cosmetics)
       .values({
-        id: currentCosmetic.id,
-        label: currentCosmetic.label,
-        description: currentCosmetic.description,
-        category: currentCosmetic.category,
-        anchorSlot: currentCosmetic.anchorSlot,
+        id: cosmeticId,
+        label: cosmeticName,
+        description,
+        category: category as DeskCatCosmeticCategory,
+        anchorSlot: anchorSlot as DeskCatAnchorSlotId,
         status: "draft"
-      })
-      .onConflictDoNothing();
+      });
 
     const [asset] = await db
       .insert(cosmeticAssets)
       .values({
-        cosmeticId: currentCosmetic.id,
+        cosmeticId,
         purpose: purpose as "preview" | "render",
         assetView: assetView as "front" | "threeQuarter" | null,
         poseId: poseId as
@@ -191,7 +226,10 @@ export async function POST(request: Request) {
       targetType: "cosmetic_asset",
       targetId: asset.id,
       metadata: {
-        cosmeticId: currentCosmetic.id,
+        cosmeticId,
+        cosmeticName,
+        category,
+        anchorSlot,
         purpose,
         assetView,
         poseId,
