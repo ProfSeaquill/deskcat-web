@@ -140,7 +140,7 @@ export async function POST(request: Request) {
 
   try {
     const blob = await put(pathname, arrayBuffer, {
-      access: "public",
+      access: "private",
       contentType: "image/png",
       addRandomSuffix: false,
       ...blobCredentials

@@ -142,7 +142,7 @@ export default async function AdminAssetsPage() {
                     <th className="px-3 py-2 font-semibold">Asset</th>
                     <th className="px-3 py-2 font-semibold">Role</th>
                     <th className="px-3 py-2 font-semibold">Size</th>
-                    <th className="px-3 py-2 font-semibold">Access</th>
+                    <th className="px-3 py-2 font-semibold">App access</th>
                     <th className="px-3 py-2 font-semibold">Action</th>
                   </tr>
                 </thead>

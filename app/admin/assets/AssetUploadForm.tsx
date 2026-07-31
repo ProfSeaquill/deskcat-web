@@ -55,7 +55,7 @@ export default function AssetUploadForm() {
     <form action={handleSubmit} className="theme-surface rounded-[28px] border p-6 backdrop-blur">
       <h2 className="theme-text-primary text-2xl font-semibold">Upload Asset</h2>
       <p className="theme-text-secondary mt-2 text-sm">
-        Uploaded cosmetic assets are saved to Blob storage and recorded in the database for
+        Uploaded cosmetic assets are saved to private Blob storage and recorded in the database for
         admin-managed cosmetics.
       </p>
 
@@ -107,14 +107,13 @@ export default function AssetUploadForm() {
         </label>
 
         <label className="theme-text-secondary block text-sm font-medium">
-          Access
+          App access
           <select name="accessible" className="theme-input mt-2 w-full rounded-xl border px-3 py-2">
             <option value="true">Accessible in app</option>
             <option value="false">Hidden from app</option>
           </select>
           <span className="theme-text-tertiary mt-2 block text-xs">
-            This controls whether DeskCat should use the asset. It does not make a public Blob URL
-            secret.
+            This controls whether DeskCat should use the asset. Blob files are stored privately.
           </span>
         </label>
       </div>
