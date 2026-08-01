@@ -4,6 +4,7 @@ import { desc, eq } from "drizzle-orm";
 import { getDb } from "../../db";
 import { adminAuditLogs, cosmeticAssets } from "../../db/schema";
 import { requireAdmin } from "../../lib/admin";
+import { BACKGROUND_OPTIONS } from "../../lib/appearance";
 import { DESKCAT_COSMETIC_OPTIONS } from "../../lib/deskcatSprite";
 import AssetUploadForm from "./AssetUploadForm";
 
@@ -11,6 +12,7 @@ const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3
 
 type ExistingAsset =
   | {
+      category: "accessory";
       source: "built-in";
       id: string;
       cosmeticId: string;
@@ -18,12 +20,11 @@ type ExistingAsset =
       role: string;
       storageKey: string;
       url: string;
-      width: number;
-      height: number;
-      byteSize: null;
+      sizeLabel: string;
       accessible: true;
     }
   | {
+      category: "accessory";
       source: "database";
       id: string;
       cosmeticId: string;
@@ -31,13 +32,23 @@ type ExistingAsset =
       role: string;
       storageKey: string;
       url: string;
-      width: number;
-      height: number;
-      byteSize: number;
+      sizeLabel: string;
       accessible: boolean;
+    }
+  | {
+      category: "background";
+      source: "built-in";
+      id: string;
+      cosmeticId: string;
+      label: string;
+      role: string;
+      storageKey: string;
+      url: string;
+      sizeLabel: string;
+      accessible: true;
     };
 
-function loadBuiltInAssets(): ExistingAsset[] {
+function loadBuiltInAccessories(): ExistingAsset[] {
   return DESKCAT_COSMETIC_OPTIONS.flatMap((cosmetic) => {
     const assetsByUrl = new Map<
       string,
@@ -74,6 +85,7 @@ function loadBuiltInAssets(): ExistingAsset[] {
     });
 
     return Array.from(assetsByUrl.entries()).map(([url, asset], index) => ({
+      category: "accessory" as const,
       source: "built-in" as const,
       id: `built-in:${cosmetic.id}:${index}`,
       cosmeticId: cosmetic.id,
@@ -81,12 +93,25 @@ function loadBuiltInAssets(): ExistingAsset[] {
       role: asset.roles.join(", "),
       storageKey: url,
       url,
-      width: asset.width,
-      height: asset.height,
-      byteSize: null,
+      sizeLabel: `${asset.width} x ${asset.height} · bundled file`,
       accessible: true as const
     }));
   });
+}
+
+function loadBuiltInBackgrounds(): ExistingAsset[] {
+  return BACKGROUND_OPTIONS.map((background) => ({
+    category: "background" as const,
+    source: "built-in" as const,
+    id: `background:${background.id}`,
+    cosmeticId: background.id,
+    label: background.label,
+    role: "theme background",
+    storageKey: background.background,
+    url: "",
+    sizeLabel: "CSS theme",
+    accessible: true as const
+  }));
 }
 
 function formatAssetLoadError(error: unknown) {
@@ -170,8 +195,10 @@ export default async function AdminAssetsPage() {
   await requireAdmin();
   const { assets, error } = await loadAssets();
   const existingAssets: ExistingAsset[] = [
-    ...loadBuiltInAssets(),
+    ...loadBuiltInBackgrounds(),
+    ...loadBuiltInAccessories(),
     ...assets.map((asset) => ({
+      category: "accessory" as const,
       source: "database" as const,
       id: asset.id,
       cosmeticId: asset.cosmeticId,
@@ -179,12 +206,12 @@ export default async function AdminAssetsPage() {
       role: `${asset.purpose} · ${asset.poseId ?? "all poses"} · ${asset.assetView ?? "default view"}`,
       storageKey: asset.storageKey,
       url: asset.publicUrl,
-      width: asset.width,
-      height: asset.height,
-      byteSize: asset.byteSize,
+      sizeLabel: `${asset.width} x ${asset.height} · ${Math.round(asset.byteSize / 1024)} KB`,
       accessible: asset.accessible
     }))
   ];
+  const backgroundAssets = existingAssets.filter((asset) => asset.category === "background");
+  const accessoryAssets = existingAssets.filter((asset) => asset.category === "accessory");
 
   return (
     <main className="min-h-screen px-6 py-10">
@@ -233,89 +260,120 @@ export default async function AdminAssetsPage() {
           ) : existingAssets.length === 0 ? (
             <p className="theme-text-secondary mt-5 text-sm">No assets have been uploaded yet.</p>
           ) : (
-            <div className="mt-5 overflow-x-auto">
-              <table className="w-full min-w-[760px] border-separate border-spacing-y-3 text-left text-sm">
-                <thead className="theme-text-tertiary">
-                  <tr>
-                    <th className="px-3 py-2 font-semibold">Asset</th>
-                    <th className="px-3 py-2 font-semibold">Role</th>
-                    <th className="px-3 py-2 font-semibold">Size</th>
-                    <th className="px-3 py-2 font-semibold">App access</th>
-                    <th className="px-3 py-2 font-semibold">Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {existingAssets.map((asset) => (
-                    <tr key={asset.id} className="theme-subsurface">
-                      <td className="rounded-l-2xl border-y border-l px-3 py-3">
-                        <div className="theme-text-primary font-semibold">{asset.label}</div>
-                        <div className="theme-text-tertiary mt-1 text-xs">
-                          {asset.cosmeticId} · {asset.source === "built-in" ? "built in" : "uploaded"}
-                        </div>
-                        <a
-                          href={asset.url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="theme-link mt-1 block max-w-[260px] truncate text-xs"
-                        >
-                          {asset.storageKey}
-                        </a>
-                      </td>
-                      <td className="border-y px-3 py-3">
-                        {asset.role}
-                      </td>
-                      <td className="border-y px-3 py-3">
-                        {asset.width} x {asset.height}
-                        {asset.byteSize === null ? (
-                          <div className="theme-text-tertiary text-xs">bundled file</div>
-                        ) : (
-                          <div className="theme-text-tertiary text-xs">
-                            {Math.round(asset.byteSize / 1024)} KB
-                          </div>
-                        )}
-                      </td>
-                      <td className="border-y px-3 py-3">
-                        {asset.source === "database" ? (
-                          <form action={updateAssetAccess} className="flex items-center gap-2">
-                            <input type="hidden" name="assetId" value={asset.id} />
-                            <select
-                              name="accessible"
-                              defaultValue={asset.accessible ? "true" : "false"}
-                              className="theme-input w-full min-w-[150px] rounded-xl border px-3 py-2"
-                            >
-                              <option value="true">Accessible</option>
-                              <option value="false">Hidden</option>
-                            </select>
-                            <button
-                              type="submit"
-                              className="theme-button-secondary theme-hover-highlight rounded-xl border px-3 py-2 text-sm font-semibold transition"
-                            >
-                              Save
-                            </button>
-                          </form>
-                        ) : (
-                          <span className="theme-text-secondary text-sm">Always available</span>
-                        )}
-                      </td>
-                      <td className="rounded-r-2xl border-y border-r px-3 py-3">
-                        <span
-                          className={
-                            asset.accessible
-                              ? "text-sm font-semibold text-emerald-300"
-                              : "text-sm font-semibold text-amber-300"
-                          }
-                        >
-                          {asset.accessible ? "Accessible" : "Hidden"}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="mt-5 space-y-8">
+              <AssetTable
+                title="Backgrounds"
+                assets={backgroundAssets}
+                updateAssetAccess={updateAssetAccess}
+              />
+              <AssetTable
+                title="Accessories"
+                assets={accessoryAssets}
+                updateAssetAccess={updateAssetAccess}
+              />
             </div>
           )}
         </section>
       </div>
     </main>
+  );
+}
+
+function AssetTable({
+  title,
+  assets,
+  updateAssetAccess
+}: {
+  title: string;
+  assets: ExistingAsset[];
+  updateAssetAccess: (formData: FormData) => Promise<void>;
+}) {
+  return (
+    <div>
+      <div className="flex items-center justify-between gap-3">
+        <h3 className="theme-text-primary text-lg font-semibold">{title}</h3>
+        <span className="theme-text-tertiary text-sm">{assets.length} assets</span>
+      </div>
+
+      {assets.length === 0 ? (
+        <p className="theme-text-secondary mt-3 text-sm">No assets in this category.</p>
+      ) : (
+        <div className="mt-3 overflow-x-auto">
+          <table className="w-full min-w-[760px] border-separate border-spacing-y-3 text-left text-sm">
+            <thead className="theme-text-tertiary">
+              <tr>
+                <th className="px-3 py-2 font-semibold">Asset</th>
+                <th className="px-3 py-2 font-semibold">Role</th>
+                <th className="px-3 py-2 font-semibold">Size</th>
+                <th className="px-3 py-2 font-semibold">App access</th>
+                <th className="px-3 py-2 font-semibold">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {assets.map((asset) => (
+                <tr key={asset.id} className="theme-subsurface">
+                  <td className="rounded-l-2xl border-y border-l px-3 py-3">
+                    <div className="theme-text-primary font-semibold">{asset.label}</div>
+                    <div className="theme-text-tertiary mt-1 text-xs">
+                      {asset.cosmeticId} · {asset.source === "built-in" ? "built in" : "uploaded"}
+                    </div>
+                    {asset.url ? (
+                      <a
+                        href={asset.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="theme-link mt-1 block max-w-[260px] truncate text-xs"
+                      >
+                        {asset.storageKey}
+                      </a>
+                    ) : (
+                      <div className="theme-text-tertiary mt-1 max-w-[260px] truncate text-xs">
+                        {asset.storageKey}
+                      </div>
+                    )}
+                  </td>
+                  <td className="border-y px-3 py-3">{asset.role}</td>
+                  <td className="border-y px-3 py-3">{asset.sizeLabel}</td>
+                  <td className="border-y px-3 py-3">
+                    {asset.source === "database" ? (
+                      <form action={updateAssetAccess} className="flex items-center gap-2">
+                        <input type="hidden" name="assetId" value={asset.id} />
+                        <select
+                          name="accessible"
+                          defaultValue={asset.accessible ? "true" : "false"}
+                          className="theme-input w-full min-w-[150px] rounded-xl border px-3 py-2"
+                        >
+                          <option value="true">Accessible</option>
+                          <option value="false">Hidden</option>
+                        </select>
+                        <button
+                          type="submit"
+                          className="theme-button-secondary theme-hover-highlight rounded-xl border px-3 py-2 text-sm font-semibold transition"
+                        >
+                          Save
+                        </button>
+                      </form>
+                    ) : (
+                      <span className="theme-text-secondary text-sm">Always available</span>
+                    )}
+                  </td>
+                  <td className="rounded-r-2xl border-y border-r px-3 py-3">
+                    <span
+                      className={
+                        asset.accessible
+                          ? "text-sm font-semibold text-emerald-300"
+                          : "text-sm font-semibold text-amber-300"
+                      }
+                    >
+                      {asset.accessible ? "Accessible" : "Hidden"}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
   );
 }
