@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { revalidatePath } from "next/cache";
-import { desc, eq } from "drizzle-orm";
+import { desc, eq, inArray } from "drizzle-orm";
 import { getDb } from "../../db";
-import { adminAuditLogs, cosmeticAssets } from "../../db/schema";
+import { adminAuditLogs, cosmeticAssets, featureFlags } from "../../db/schema";
 import { requireAdmin } from "../../lib/admin";
 import { BACKGROUND_OPTIONS } from "../../lib/appearance";
 import { DESKCAT_COSMETIC_OPTIONS } from "../../lib/deskcatSprite";
@@ -21,7 +21,7 @@ type ExistingAsset =
       storageKey: string;
       url: string;
       sizeLabel: string;
-      accessible: true;
+      accessible: boolean;
     }
   | {
       category: "accessory";
@@ -45,10 +45,14 @@ type ExistingAsset =
       storageKey: string;
       url: string;
       sizeLabel: string;
-      accessible: true;
+      accessible: boolean;
     };
 
-function loadBuiltInAccessories(): ExistingAsset[] {
+function assetFlagId(assetId: string) {
+  return `asset:${assetId}`;
+}
+
+function loadBuiltInAccessories(accessOverrides: Map<string, boolean>): ExistingAsset[] {
   return DESKCAT_COSMETIC_OPTIONS.flatMap((cosmetic) => {
     const assetsByUrl = new Map<
       string,
@@ -94,12 +98,12 @@ function loadBuiltInAccessories(): ExistingAsset[] {
       storageKey: url,
       url,
       sizeLabel: `${asset.width} x ${asset.height} · bundled file`,
-      accessible: true as const
+      accessible: accessOverrides.get(`built-in:${cosmetic.id}:${index}`) ?? true
     }));
   });
 }
 
-function loadBuiltInBackgrounds(): ExistingAsset[] {
+function loadBuiltInBackgrounds(accessOverrides: Map<string, boolean>): ExistingAsset[] {
   return BACKGROUND_OPTIONS.map((background) => ({
     category: "background" as const,
     source: "built-in" as const,
@@ -110,8 +114,20 @@ function loadBuiltInBackgrounds(): ExistingAsset[] {
     storageKey: background.background,
     url: "",
     sizeLabel: "CSS theme",
-    accessible: true as const
+    accessible: accessOverrides.get(`background:${background.id}`) ?? true
   }));
+}
+
+function loadBuiltInAssetIds() {
+  const emptyOverrides = new Map<string, boolean>();
+  return [
+    ...loadBuiltInBackgrounds(emptyOverrides),
+    ...loadBuiltInAccessories(emptyOverrides)
+  ].map((asset) => asset.id);
+}
+
+function isBuiltInAssetId(value: string) {
+  return loadBuiltInAssetIds().includes(value);
 }
 
 function formatAssetLoadError(error: unknown) {
@@ -128,18 +144,30 @@ function formatAssetLoadError(error: unknown) {
   return "Could not load assets.";
 }
 
-async function loadAssets() {
+async function loadAssets(builtInAssetIds: string[]) {
   try {
+    const db = getDb();
     const assets = await getDb()
       .select()
       .from(cosmeticAssets)
       .orderBy(desc(cosmeticAssets.createdAt))
       .limit(100);
+    const flags =
+      builtInAssetIds.length > 0
+        ? await db
+            .select({
+              id: featureFlags.id,
+              enabled: featureFlags.enabled
+            })
+            .from(featureFlags)
+            .where(inArray(featureFlags.id, builtInAssetIds.map(assetFlagId)))
+        : [];
 
-    return { assets, error: null };
+    return { assets, flags, error: null };
   } catch (error) {
     return {
       assets: [],
+      flags: [],
       error: formatAssetLoadError(error)
     };
   }
@@ -150,10 +178,15 @@ async function updateAssetAccess(formData: FormData) {
 
   const session = await requireAdmin();
   const assetId = formData.get("assetId");
+  const assetSource = formData.get("assetSource");
   const accessibleValue = formData.get("accessible");
 
-  if (typeof assetId !== "string" || !UUID_PATTERN.test(assetId)) {
+  if (typeof assetId !== "string" || assetId.length === 0) {
     throw new Error("Choose a valid asset.");
+  }
+
+  if (assetSource !== "database" && assetSource !== "built-in") {
+    throw new Error("Choose a valid asset source.");
   }
 
   if (accessibleValue !== "true" && accessibleValue !== "false") {
@@ -163,6 +196,48 @@ async function updateAssetAccess(formData: FormData) {
   const accessible = accessibleValue === "true";
   const actorEmail = session.user?.email ?? "unknown";
   const db = getDb();
+
+  if (assetSource === "built-in") {
+    if (!isBuiltInAssetId(assetId)) {
+      throw new Error("Asset not found.");
+    }
+
+    await db
+      .insert(featureFlags)
+      .values({
+        id: assetFlagId(assetId),
+        enabled: accessible,
+        description: `App access for built-in asset ${assetId}`,
+        updatedByEmail: actorEmail,
+        updatedAt: new Date()
+      })
+      .onConflictDoUpdate({
+        target: featureFlags.id,
+        set: {
+          enabled: accessible,
+          updatedByEmail: actorEmail,
+          updatedAt: new Date()
+        }
+      });
+
+    await db.insert(adminAuditLogs).values({
+      actorEmail,
+      action: "built_in_asset.access.update",
+      targetType: "built_in_asset",
+      targetId: assetId,
+      metadata: {
+        accessible
+      }
+    });
+
+    revalidatePath("/admin/assets");
+    return;
+  }
+
+  if (!UUID_PATTERN.test(assetId)) {
+    throw new Error("Choose a valid asset.");
+  }
+
   const [asset] = await db
     .update(cosmeticAssets)
     .set({
@@ -193,10 +268,14 @@ async function updateAssetAccess(formData: FormData) {
 
 export default async function AdminAssetsPage() {
   await requireAdmin();
-  const { assets, error } = await loadAssets();
+  const builtInAssetIds = loadBuiltInAssetIds();
+  const { assets, flags, error } = await loadAssets(builtInAssetIds);
+  const accessOverrides = new Map(
+    flags.map((flag) => [flag.id.replace(/^asset:/, ""), flag.enabled])
+  );
   const existingAssets: ExistingAsset[] = [
-    ...loadBuiltInBackgrounds(),
-    ...loadBuiltInAccessories(),
+    ...loadBuiltInBackgrounds(accessOverrides),
+    ...loadBuiltInAccessories(accessOverrides),
     ...assets.map((asset) => ({
       category: "accessory" as const,
       source: "database" as const,
@@ -289,11 +368,11 @@ function AssetTable({
   updateAssetAccess: (formData: FormData) => Promise<void>;
 }) {
   return (
-    <div>
-      <div className="flex items-center justify-between gap-3">
+    <details className="theme-subsurface rounded-2xl border p-4">
+      <summary className="theme-hover-highlight flex cursor-pointer list-none items-center justify-between gap-3 rounded-xl px-2 py-2">
         <h3 className="theme-text-primary text-lg font-semibold">{title}</h3>
         <span className="theme-text-tertiary text-sm">{assets.length} assets</span>
-      </div>
+      </summary>
 
       {assets.length === 0 ? (
         <p className="theme-text-secondary mt-3 text-sm">No assets in this category.</p>
@@ -335,27 +414,24 @@ function AssetTable({
                   <td className="border-y px-3 py-3">{asset.role}</td>
                   <td className="border-y px-3 py-3">{asset.sizeLabel}</td>
                   <td className="border-y px-3 py-3">
-                    {asset.source === "database" ? (
-                      <form action={updateAssetAccess} className="flex items-center gap-2">
-                        <input type="hidden" name="assetId" value={asset.id} />
-                        <select
-                          name="accessible"
-                          defaultValue={asset.accessible ? "true" : "false"}
-                          className="theme-input w-full min-w-[150px] rounded-xl border px-3 py-2"
-                        >
-                          <option value="true">Accessible</option>
-                          <option value="false">Hidden</option>
-                        </select>
-                        <button
-                          type="submit"
-                          className="theme-button-secondary theme-hover-highlight rounded-xl border px-3 py-2 text-sm font-semibold transition"
-                        >
-                          Save
-                        </button>
-                      </form>
-                    ) : (
-                      <span className="theme-text-secondary text-sm">Always available</span>
-                    )}
+                    <form action={updateAssetAccess} className="flex items-center gap-2">
+                      <input type="hidden" name="assetId" value={asset.id} />
+                      <input type="hidden" name="assetSource" value={asset.source} />
+                      <select
+                        name="accessible"
+                        defaultValue={asset.accessible ? "true" : "false"}
+                        className="theme-input w-full min-w-[150px] rounded-xl border px-3 py-2"
+                      >
+                        <option value="true">Accessible</option>
+                        <option value="false">Hidden</option>
+                      </select>
+                      <button
+                        type="submit"
+                        className="theme-button-secondary theme-hover-highlight rounded-xl border px-3 py-2 text-sm font-semibold transition"
+                      >
+                        Save
+                      </button>
+                    </form>
                   </td>
                   <td className="rounded-r-2xl border-y border-r px-3 py-3">
                     <span
@@ -374,6 +450,6 @@ function AssetTable({
           </table>
         </div>
       )}
-    </div>
+    </details>
   );
 }
