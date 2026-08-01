@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { del } from "@vercel/blob";
 import { revalidatePath } from "next/cache";
 import { desc, eq, inArray } from "drizzle-orm";
 import { getDb } from "../../db";
@@ -173,95 +174,123 @@ async function loadAssets(builtInAssetIds: string[]) {
   }
 }
 
-async function updateAssetAccess(formData: FormData) {
+async function saveAssetChanges(formData: FormData) {
   "use server";
 
   const session = await requireAdmin();
-  const assetId = formData.get("assetId");
-  const assetSource = formData.get("assetSource");
-  const accessibleValue = formData.get("accessible");
-
-  if (typeof assetId !== "string" || assetId.length === 0) {
-    throw new Error("Choose a valid asset.");
-  }
-
-  if (assetSource !== "database" && assetSource !== "built-in") {
-    throw new Error("Choose a valid asset source.");
-  }
-
-  if (accessibleValue !== "true" && accessibleValue !== "false") {
-    throw new Error("Choose a valid access setting.");
-  }
-
-  const accessible = accessibleValue === "true";
   const actorEmail = session.user?.email ?? "unknown";
   const db = getDb();
+  const assetIds = formData.getAll("assetId").filter((value): value is string => typeof value === "string");
 
-  if (assetSource === "built-in") {
-    if (!isBuiltInAssetId(assetId)) {
-      throw new Error("Asset not found.");
+  for (const assetId of assetIds) {
+    const assetSource = formData.get(`assetSource:${assetId}`);
+    const accessibleValue = formData.get(`accessible:${assetId}`);
+    const shouldDelete = formData.get(`delete:${assetId}`) === "on";
+
+    if (assetSource !== "database" && assetSource !== "built-in") {
+      throw new Error("Choose a valid asset source.");
     }
 
-    await db
-      .insert(featureFlags)
-      .values({
-        id: assetFlagId(assetId),
-        enabled: accessible,
-        description: `App access for built-in asset ${assetId}`,
-        updatedByEmail: actorEmail,
-        updatedAt: new Date()
-      })
-      .onConflictDoUpdate({
-        target: featureFlags.id,
-        set: {
+    if (accessibleValue !== "true" && accessibleValue !== "false") {
+      throw new Error("Choose a valid access setting.");
+    }
+
+    const accessible = accessibleValue === "true";
+
+    if (assetSource === "built-in") {
+      if (!isBuiltInAssetId(assetId)) {
+        throw new Error("Asset not found.");
+      }
+
+      await db
+        .insert(featureFlags)
+        .values({
+          id: assetFlagId(assetId),
           enabled: accessible,
+          description: `App access for built-in asset ${assetId}`,
           updatedByEmail: actorEmail,
           updatedAt: new Date()
+        })
+        .onConflictDoUpdate({
+          target: featureFlags.id,
+          set: {
+            enabled: accessible,
+            updatedByEmail: actorEmail,
+            updatedAt: new Date()
+          }
+        });
+
+      await db.insert(adminAuditLogs).values({
+        actorEmail,
+        action: "built_in_asset.access.update",
+        targetType: "built_in_asset",
+        targetId: assetId,
+        metadata: {
+          accessible
         }
       });
 
+      continue;
+    }
+
+    if (!UUID_PATTERN.test(assetId)) {
+      throw new Error("Choose a valid asset.");
+    }
+
+    if (shouldDelete) {
+      const [asset] = await db
+        .select()
+        .from(cosmeticAssets)
+        .where(eq(cosmeticAssets.id, assetId))
+        .limit(1);
+
+      if (!asset) {
+        continue;
+      }
+
+      await del(asset.storageKey);
+
+      await db.delete(cosmeticAssets).where(eq(cosmeticAssets.id, assetId));
+
+      await db.insert(adminAuditLogs).values({
+        actorEmail,
+        action: "cosmetic_asset.delete",
+        targetType: "cosmetic_asset",
+        targetId: asset.id,
+        metadata: {
+          cosmeticId: asset.cosmeticId,
+          storageKey: asset.storageKey
+        }
+      });
+
+      continue;
+    }
+
+    const [asset] = await db
+      .update(cosmeticAssets)
+      .set({
+        accessible,
+        updatedByEmail: actorEmail,
+        updatedAt: new Date()
+      })
+      .where(eq(cosmeticAssets.id, assetId))
+      .returning();
+
+    if (!asset) {
+      throw new Error("Asset not found.");
+    }
+
     await db.insert(adminAuditLogs).values({
       actorEmail,
-      action: "built_in_asset.access.update",
-      targetType: "built_in_asset",
-      targetId: assetId,
+      action: "cosmetic_asset.access.update",
+      targetType: "cosmetic_asset",
+      targetId: asset.id,
       metadata: {
+        cosmeticId: asset.cosmeticId,
         accessible
       }
     });
-
-    revalidatePath("/admin/assets");
-    return;
   }
-
-  if (!UUID_PATTERN.test(assetId)) {
-    throw new Error("Choose a valid asset.");
-  }
-
-  const [asset] = await db
-    .update(cosmeticAssets)
-    .set({
-      accessible,
-      updatedByEmail: actorEmail,
-      updatedAt: new Date()
-    })
-    .where(eq(cosmeticAssets.id, assetId))
-    .returning();
-
-  if (!asset) {
-    throw new Error("Asset not found.");
-  }
-
-  await db.insert(adminAuditLogs).values({
-    actorEmail,
-    action: "cosmetic_asset.access.update",
-    targetType: "cosmetic_asset",
-    targetId: asset.id,
-    metadata: {
-      cosmeticId: asset.cosmeticId,
-      accessible
-    }
-  });
 
   revalidatePath("/admin/assets");
 }
@@ -339,18 +368,22 @@ export default async function AdminAssetsPage() {
           ) : existingAssets.length === 0 ? (
             <p className="theme-text-secondary mt-5 text-sm">No assets have been uploaded yet.</p>
           ) : (
-            <div className="mt-5 space-y-8">
+            <form action={saveAssetChanges} className="mt-5 space-y-8">
               <AssetTable
                 title="Backgrounds"
                 assets={backgroundAssets}
-                updateAssetAccess={updateAssetAccess}
               />
               <AssetTable
                 title="Accessories"
                 assets={accessoryAssets}
-                updateAssetAccess={updateAssetAccess}
               />
-            </div>
+              <button
+                type="submit"
+                className="theme-button-primary theme-hover-highlight inline-flex items-center justify-center rounded-2xl border px-5 py-3 font-semibold transition"
+              >
+                Save all asset changes
+              </button>
+            </form>
           )}
         </section>
       </div>
@@ -360,12 +393,10 @@ export default async function AdminAssetsPage() {
 
 function AssetTable({
   title,
-  assets,
-  updateAssetAccess
+  assets
 }: {
   title: string;
   assets: ExistingAsset[];
-  updateAssetAccess: (formData: FormData) => Promise<void>;
 }) {
   return (
     <details className="theme-subsurface rounded-2xl border p-4">
@@ -414,35 +445,30 @@ function AssetTable({
                   <td className="border-y px-3 py-3">{asset.role}</td>
                   <td className="border-y px-3 py-3">{asset.sizeLabel}</td>
                   <td className="border-y px-3 py-3">
-                    <form action={updateAssetAccess} className="flex items-center gap-2">
-                      <input type="hidden" name="assetId" value={asset.id} />
-                      <input type="hidden" name="assetSource" value={asset.source} />
-                      <select
-                        name="accessible"
-                        defaultValue={asset.accessible ? "true" : "false"}
-                        className="theme-input w-full min-w-[150px] rounded-xl border px-3 py-2"
-                      >
-                        <option value="true">Accessible</option>
-                        <option value="false">Hidden</option>
-                      </select>
-                      <button
-                        type="submit"
-                        className="theme-button-secondary theme-hover-highlight rounded-xl border px-3 py-2 text-sm font-semibold transition"
-                      >
-                        Save
-                      </button>
-                    </form>
+                    <input type="hidden" name="assetId" value={asset.id} />
+                    <input type="hidden" name={`assetSource:${asset.id}`} value={asset.source} />
+                    <select
+                      name={`accessible:${asset.id}`}
+                      defaultValue={asset.accessible ? "true" : "false"}
+                      className="theme-input w-full min-w-[150px] rounded-xl border px-3 py-2"
+                    >
+                      <option value="true">Accessible</option>
+                      <option value="false">Hidden</option>
+                    </select>
                   </td>
                   <td className="rounded-r-2xl border-y border-r px-3 py-3">
-                    <span
-                      className={
-                        asset.accessible
-                          ? "text-sm font-semibold text-emerald-300"
-                          : "text-sm font-semibold text-amber-300"
-                      }
-                    >
-                      {asset.accessible ? "Accessible" : "Hidden"}
-                    </span>
+                    {asset.source === "database" ? (
+                      <label className="theme-text-secondary flex items-center gap-2 text-sm">
+                        <input
+                          type="checkbox"
+                          name={`delete:${asset.id}`}
+                          className="h-4 w-4 accent-red-400"
+                        />
+                        Delete
+                      </label>
+                    ) : (
+                      <span className="theme-text-tertiary text-sm">Cannot delete built-in</span>
+                    )}
                   </td>
                 </tr>
               ))}
