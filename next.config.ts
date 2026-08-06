@@ -5,15 +5,36 @@ import type { NextConfig } from "next";
 const projectRoot = path.dirname(fileURLToPath(import.meta.url));
 
 const isDev = process.env.NODE_ENV !== "production";
+const googleAnalyticsEnabled = Boolean(process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID);
+
+const scriptSrc = [
+  "'self'",
+  "'unsafe-inline'",
+  ...(isDev ? ["'unsafe-eval'"] : []),
+  ...(googleAnalyticsEnabled ? ["https://www.googletagmanager.com"] : [])
+].join(" ");
+
+const imgSrc = [
+  "'self'",
+  "data:",
+  "blob:",
+  "https://*.public.blob.vercel-storage.com",
+  ...(googleAnalyticsEnabled ? ["https://www.google-analytics.com"] : [])
+].join(" ");
+
+const connectSrc = [
+  "'self'",
+  ...(googleAnalyticsEnabled ? ["https://www.google-analytics.com", "https://*.google-analytics.com"] : [])
+].join(" ");
 
 const contentSecurityPolicy = [
   "default-src 'self'",
-  `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""}`,
+  `script-src ${scriptSrc}`,
   "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob: https://*.public.blob.vercel-storage.com",
+  `img-src ${imgSrc}`,
   "font-src 'self' data:",
   "media-src 'self'",
-  "connect-src 'self'",
+  `connect-src ${connectSrc}`,
   "frame-ancestors 'none'",
   "base-uri 'self'",
   "form-action 'self'",

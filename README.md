@@ -25,6 +25,12 @@ environment. The webhook endpoint is `/api/donations/webhook`; subscribe it to
 payments are recorded idempotently and update the community total. Secret keys never reach
 the browser.
 
+## Google Analytics
+
+Set `NEXT_PUBLIC_GA_MEASUREMENT_ID` to the GA4 measurement ID, for example `G-XXXXXXXXXX`, in
+the deployment environment. When it is unset, DeskCat does not load the Google Analytics script.
+Client-side page navigation is tracked through the shared App Router layout.
+
 ## Database
 
 DeskCat uses Drizzle with a Postgres-compatible Neon connection for admin-managed data. Set

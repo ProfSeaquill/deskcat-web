@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import { Fredoka, Geist, Geist_Mono } from "next/font/google";
+import { Suspense } from "react";
 import AppearanceController from "./components/AppearanceController";
 import AppWarmup from "./components/AppWarmup";
 import AuthProvider from "./components/AuthProvider";
+import GoogleAnalytics from "./components/GoogleAnalytics";
 import GlobalAccountLayer from "./components/GlobalAccountLayer";
 import "./globals.css";
 
@@ -34,6 +36,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable} ${fredoka.variable} antialiased`}>
+        <Suspense fallback={null}>
+          <GoogleAnalytics />
+        </Suspense>
         <AuthProvider>
           <AppearanceController />
           <AppWarmup />
