@@ -1,0 +1,14 @@
+{
+  "formatVersion": 1,
+  "id": "lime",
+  "label": "Soft Lime",
+  "description": "A gentle lime wash with fresh spring greens instead of neon intensity.",
+  "background": "linear-gradient(180deg, #fbfff4 0%, #e4f1c5 56%, #c6df93 100%)",
+  "foreground": "#213019",
+  "accent": "#9dca67",
+  "border": "rgba(132, 173, 81, 0.32)",
+  "swatches": ["#fbfff4", "#d8ecae", "#9dca67"],
+  "surfaceMode": "light",
+  "accessible": true,
+  "sortOrder": 30
+}

@@ -1,0 +1,14 @@
+{
+  "formatVersion": 1,
+  "id": "lavender",
+  "label": "Light Lavender",
+  "description": "A quiet pastel wash for gentler writing sessions.",
+  "background": "linear-gradient(180deg, #f8f1ff 0%, #f0e8ff 58%, #fbf6ff 100%)",
+  "foreground": "#2a1f43",
+  "accent": "#b597f3",
+  "border": "rgba(181, 151, 243, 0.4)",
+  "swatches": ["#fdf9ff", "#e9dcff", "#b597f3"],
+  "surfaceMode": "light",
+  "accessible": true,
+  "sortOrder": 50
+}

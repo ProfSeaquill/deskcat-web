@@ -1,0 +1,14 @@
+{
+  "formatVersion": 1,
+  "id": "orange",
+  "label": "Bright Orange",
+  "description": "A bold citrus backdrop with more energy.",
+  "background": "linear-gradient(180deg, #ffd89f 0%, #ffb14a 58%, #ff922f 100%)",
+  "foreground": "#412104",
+  "accent": "#ff7c22",
+  "border": "rgba(170, 88, 10, 0.38)",
+  "swatches": ["#fff2dd", "#ffb14a", "#ff7c22"],
+  "surfaceMode": "light",
+  "accessible": true,
+  "sortOrder": 80
+}

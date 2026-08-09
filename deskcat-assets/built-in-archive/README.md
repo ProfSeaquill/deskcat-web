@@ -4,6 +4,7 @@ This folder is the on-drive backup of the assets that the admin asset editor pre
 "built in". It is deliberately not imported by the DeskCat application.
 
 - `accessories/` contains cleanly named copies of every unique PNG that appeared in the editor.
+- `backgrounds/` contains one upload-ready DeskCat background JSON file per archived theme.
 - `manifest.json` records every former editor row and the roles each file served.
 - `source-definitions/appearance.ts.txt` preserves the complete definitions for all nine CSS background
   themes.
@@ -13,3 +14,6 @@ This folder is the on-drive backup of the assets that the admin asset editor pre
 The original source paths are included in the manifest so an archived file can be traced back to
 its previous bundled location. The archive is data only; moving files here does not make them part
 of a production build.
+
+To restore backgrounds later, select all files in `backgrounds/` from the admin asset page's
+**Batch Upload Backgrounds** panel, review the previews and settings, and save the batch.

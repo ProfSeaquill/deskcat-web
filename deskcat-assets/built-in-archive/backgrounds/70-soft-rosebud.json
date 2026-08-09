@@ -1,0 +1,14 @@
+{
+  "formatVersion": 1,
+  "id": "rose",
+  "label": "Soft Rosebud",
+  "description": "A muted rosy backdrop with warm pink-red tones and a softer glow.",
+  "background": "linear-gradient(180deg, #fff8f7 0%, #f4d7da 56%, #e6b4bb 100%)",
+  "foreground": "#3f2025",
+  "accent": "#d98d98",
+  "border": "rgba(191, 120, 126, 0.32)",
+  "swatches": ["#fff8f7", "#efc5cb", "#d98d98"],
+  "surfaceMode": "light",
+  "accessible": true,
+  "sortOrder": 70
+}

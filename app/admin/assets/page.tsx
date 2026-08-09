@@ -12,6 +12,7 @@ import {
 import { requireAdmin } from "../../lib/admin";
 import AssetUploadForm from "./AssetUploadForm";
 import BatchAssetUploadForm from "./BatchAssetUploadForm";
+import BatchBackgroundUploadForm from "./BatchBackgroundUploadForm";
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const MANAGED_ID_PATTERN = /^[a-z0-9][a-z0-9-]{0,79}$/;
@@ -331,6 +332,8 @@ export default async function AdminAssetsPage() {
         </header>
 
         <BatchAssetUploadForm />
+
+        <BatchBackgroundUploadForm />
 
         <BackgroundThemeForm />
 

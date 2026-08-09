@@ -1,0 +1,14 @@
+{
+  "formatVersion": 1,
+  "id": "green",
+  "label": "Forest Green",
+  "description": "A deep evergreen backdrop with a soft mossy glow.",
+  "background": "linear-gradient(180deg, #08140d 0%, #153321 56%, #28573b 100%)",
+  "foreground": "#eefbf2",
+  "accent": "#86d8a0",
+  "border": "rgba(128, 199, 154, 0.34)",
+  "swatches": ["#08140d", "#28573b", "#86d8a0"],
+  "surfaceMode": "dark",
+  "accessible": true,
+  "sortOrder": 20
+}

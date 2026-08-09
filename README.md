@@ -61,6 +61,9 @@ anchor, purpose, view, pose, and app access, and saving the batch with one actio
 editor entries are no longer mixed into the managed asset list. Their PNGs, metadata manifest, and
 source definitions are backed up under `deskcat-assets/built-in-archive`.
 
+Background themes can be imported in batches from individual JSON files. The nine former built-in
+themes are preserved as upload-ready files under `deskcat-assets/built-in-archive/backgrounds`.
+
 Background themes are stored in `appearance_backgrounds`. Run `npm run db:migrate` after pulling
 schema changes before creating themes in the asset manager.
 

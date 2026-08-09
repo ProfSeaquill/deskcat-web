@@ -1,0 +1,14 @@
+{
+  "formatVersion": 1,
+  "id": "cabin",
+  "label": "Cabin Brown",
+  "description": "Warm log-cabin browns with a lantern-lit, woodsy feel.",
+  "background": "linear-gradient(180deg, #1a0f0a 0%, #4a2d1b 56%, #785334 100%)",
+  "foreground": "#fff5e8",
+  "accent": "#d9a868",
+  "border": "rgba(214, 171, 117, 0.34)",
+  "swatches": ["#1a0f0a", "#785334", "#d9a868"],
+  "surfaceMode": "dark",
+  "accessible": true,
+  "sortOrder": 40
+}

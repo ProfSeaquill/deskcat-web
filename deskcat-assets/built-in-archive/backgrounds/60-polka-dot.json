@@ -1,0 +1,14 @@
+{
+  "formatVersion": 1,
+  "id": "polka",
+  "label": "Polka Dot",
+  "description": "A soft blush backdrop with playful pink dots and a sweeter feel.",
+  "background": "radial-gradient(circle, rgba(227, 145, 180, 0.9) 0 8px, transparent 8.5px) 0 0 / 88px 88px, radial-gradient(circle, rgba(244, 190, 211, 0.92) 0 6px, transparent 6.5px) 44px 44px / 88px 88px, linear-gradient(180deg, #fffafd 0%, #ffeef5 100%)",
+  "foreground": "#402432",
+  "accent": "#df8eb1",
+  "border": "rgba(220, 150, 177, 0.3)",
+  "swatches": ["#fffafd", "#f8d6e4", "#df8eb1"],
+  "surfaceMode": "light",
+  "accessible": true,
+  "sortOrder": 60
+}

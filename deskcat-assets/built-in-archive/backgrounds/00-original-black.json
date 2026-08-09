@@ -1,0 +1,14 @@
+{
+  "formatVersion": 1,
+  "id": "black",
+  "label": "Original Black",
+  "description": "The original DeskCat look with a dark, cozy desktop backdrop.",
+  "background": "linear-gradient(180deg, #06080d 0%, #101725 58%, #1a2436 100%)",
+  "foreground": "#edf4ff",
+  "accent": "#7ab9e6",
+  "border": "rgba(122, 185, 230, 0.34)",
+  "swatches": ["#05070b", "#111827", "#7ab9e6"],
+  "surfaceMode": "dark",
+  "accessible": true,
+  "sortOrder": 0
+}

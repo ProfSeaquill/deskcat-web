@@ -1,0 +1,14 @@
+{
+  "formatVersion": 1,
+  "id": "default",
+  "label": "Dark Navy",
+  "description": "A deep midnight-blue backdrop with a calmer, nautical glow.",
+  "background": "linear-gradient(180deg, #091326 0%, #122447 56%, #1d3564 100%)",
+  "foreground": "#eef4ff",
+  "accent": "#8bc4f0",
+  "border": "rgba(139, 196, 240, 0.34)",
+  "swatches": ["#091326", "#1d3564", "#8bc4f0"],
+  "surfaceMode": "dark",
+  "accessible": true,
+  "sortOrder": 10
+}

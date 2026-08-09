@@ -2,15 +2,15 @@
   "archivedAt": "2026-08-08",
   "editorRowsArchived": 16,
   "backgrounds": [
-    { "id": "black", "label": "Original Black", "role": "theme background" },
-    { "id": "default", "label": "Dark Navy", "role": "theme background" },
-    { "id": "green", "label": "Forest Green", "role": "theme background" },
-    { "id": "lime", "label": "Soft Lime", "role": "theme background" },
-    { "id": "cabin", "label": "Cabin Brown", "role": "theme background" },
-    { "id": "lavender", "label": "Light Lavender", "role": "theme background" },
-    { "id": "polka", "label": "Polka Dot", "role": "theme background" },
-    { "id": "rose", "label": "Soft Rosebud", "role": "theme background" },
-    { "id": "orange", "label": "Bright Orange", "role": "theme background" }
+    { "id": "black", "label": "Original Black", "role": "theme background", "path": "backgrounds/00-original-black.json" },
+    { "id": "default", "label": "Dark Navy", "role": "theme background", "path": "backgrounds/10-dark-navy.json" },
+    { "id": "green", "label": "Forest Green", "role": "theme background", "path": "backgrounds/20-forest-green.json" },
+    { "id": "lime", "label": "Soft Lime", "role": "theme background", "path": "backgrounds/30-soft-lime.json" },
+    { "id": "cabin", "label": "Cabin Brown", "role": "theme background", "path": "backgrounds/40-cabin-brown.json" },
+    { "id": "lavender", "label": "Light Lavender", "role": "theme background", "path": "backgrounds/50-light-lavender.json" },
+    { "id": "polka", "label": "Polka Dot", "role": "theme background", "path": "backgrounds/60-polka-dot.json" },
+    { "id": "rose", "label": "Soft Rosebud", "role": "theme background", "path": "backgrounds/70-soft-rosebud.json" },
+    { "id": "orange", "label": "Bright Orange", "role": "theme background", "path": "backgrounds/80-bright-orange.json" }
   ],
   "accessories": [
     {
