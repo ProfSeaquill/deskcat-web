@@ -55,6 +55,11 @@ OIDC authentication. The production path uses `BLOB_STORE_ID` plus Vercel's runt
 a fallback. Uploads are stored in Vercel Blob and recorded in the `cosmetic_assets` table. The
 public DeskCat runtime does not use uploaded assets yet.
 
+The asset manager supports staging up to 20 PNGs in a batch table, editing each row's category,
+anchor, purpose, view, pose, and app access, and saving the batch with one action. Former built-in
+editor entries are no longer mixed into the managed asset list. Their PNGs, metadata manifest, and
+source definitions are backed up under `deskcat-assets/built-in-archive`.
+
 ## DeskCat anchor editor
 
 With the development server running, open

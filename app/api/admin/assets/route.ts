@@ -5,15 +5,12 @@ import { NextResponse } from "next/server";
 import { getDb } from "../../../db";
 import { adminAuditLogs, cosmeticAssets, cosmetics } from "../../../db/schema";
 import { getAdminSession } from "../../../lib/admin";
-import {
-  DESKCAT_COSMETIC_OPTIONS,
-  type DeskCatCosmeticCategory
-} from "../../../lib/deskcatSprite";
+import type { DeskCatCosmeticCategory } from "../../../lib/deskcatSprite";
 import type { DeskCatAnchorSlotId } from "../../../lib/deskcatAnchors";
 
 export const runtime = "nodejs";
 
-const MAX_UPLOAD_BYTES = 2 * 1024 * 1024;
+const MAX_UPLOAD_BYTES = 4 * 1024 * 1024;
 const PNG_SIGNATURE = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
 const VALID_PURPOSES = new Set(["preview", "render"]);
 const VALID_CATEGORIES = new Set(["head", "neck", "tail", "glasses"]);
@@ -97,7 +94,7 @@ export async function POST(request: Request) {
   }
 
   if (file.size <= 0 || file.size > MAX_UPLOAD_BYTES) {
-    return jsonError("Upload must be a PNG file up to 2 MB.", 400);
+    return jsonError("Upload must be a PNG file up to 4 MB.", 400);
   }
 
   if (file.type !== "image/png") {
@@ -112,10 +109,6 @@ export async function POST(request: Request) {
   const cosmeticId = parseOptionalString(formData.get("cosmeticId"));
   if (!cosmeticId || !COSMETIC_ID_PATTERN.test(cosmeticId)) {
     return jsonError("Enter a cosmetic ID with lowercase letters, numbers, and dashes.", 400);
-  }
-
-  if (DESKCAT_COSMETIC_OPTIONS.some((cosmetic) => cosmetic.id === cosmeticId)) {
-    return jsonError("That cosmetic ID is already used by a built-in cosmetic.", 409);
   }
 
   const description = parseOptionalString(formData.get("description")) ?? "";

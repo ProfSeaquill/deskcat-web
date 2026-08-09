@@ -1,0 +1,98 @@
+{
+  "archivedAt": "2026-08-08",
+  "editorRowsArchived": 16,
+  "backgrounds": [
+    { "id": "black", "label": "Original Black", "role": "theme background" },
+    { "id": "default", "label": "Dark Navy", "role": "theme background" },
+    { "id": "green", "label": "Forest Green", "role": "theme background" },
+    { "id": "lime", "label": "Soft Lime", "role": "theme background" },
+    { "id": "cabin", "label": "Cabin Brown", "role": "theme background" },
+    { "id": "lavender", "label": "Light Lavender", "role": "theme background" },
+    { "id": "polka", "label": "Polka Dot", "role": "theme background" },
+    { "id": "rose", "label": "Soft Rosebud", "role": "theme background" },
+    { "id": "orange", "label": "Bright Orange", "role": "theme background" }
+  ],
+  "accessories": [
+    {
+      "cosmeticId": "red-bowtie",
+      "label": "Red Bowtie",
+      "category": "neck",
+      "anchorSlot": "neck",
+      "files": [
+        {
+          "path": "accessories/red-bowtie/front.png",
+          "originalPath": "art/Images/Accessories/Neck/red_bowtie_front.png",
+          "width": 1536,
+          "height": 1024,
+          "roles": ["preview", "render · front", "pose · logo", "pose · reading", "pose · sitting", "pose · sleeping", "pose · walking"]
+        },
+        {
+          "path": "accessories/red-bowtie/three-quarter.png",
+          "originalPath": "art/Images/Accessories/Neck/red_bowtie_3:4.png",
+          "width": 980,
+          "height": 652,
+          "roles": ["render", "render · threeQuarter"]
+        }
+      ]
+    },
+    {
+      "cosmeticId": "red-top-hat",
+      "label": "Red Top Hat",
+      "category": "head",
+      "anchorSlot": "head",
+      "files": [
+        {
+          "path": "accessories/red-top-hat/front.png",
+          "originalPath": "art/Images/Accessories/Head/Top Hat/red_top hat_front.png",
+          "width": 1254,
+          "height": 1254,
+          "roles": ["preview", "render · front", "pose · logo", "pose · reading", "pose · sitting", "pose · sleeping", "pose · walking"]
+        },
+        {
+          "path": "accessories/red-top-hat/three-quarter.png",
+          "originalPath": "art/Images/Accessories/Head/Top Hat/red_top hat_3:4.png",
+          "width": 1254,
+          "height": 1254,
+          "roles": ["render", "render · threeQuarter"]
+        }
+      ]
+    },
+    {
+      "cosmeticId": "glasses-default",
+      "label": "Default Glasses",
+      "category": "glasses",
+      "anchorSlot": "eyes",
+      "files": [
+        {
+          "path": "accessories/default-glasses/default.png",
+          "originalPath": "art/Images/Accessories/Glasses/glasses_default.png",
+          "width": 1254,
+          "height": 1254,
+          "roles": ["preview", "render", "render · front", "render · threeQuarter"]
+        }
+      ]
+    },
+    {
+      "cosmeticId": "red-glasses",
+      "label": "Red Glasses",
+      "category": "glasses",
+      "anchorSlot": "eyes",
+      "files": [
+        {
+          "path": "accessories/red-glasses/front.png",
+          "originalPath": "art/Images/Accessories/Glasses/Red Glasses/red_glasses_front.png",
+          "width": 1254,
+          "height": 1254,
+          "roles": ["preview", "render · front", "pose · logo", "pose · reading", "pose · sitting", "pose · sleeping", "pose · walking"]
+        },
+        {
+          "path": "accessories/red-glasses/three-quarter.png",
+          "originalPath": "art/Images/Accessories/Glasses/Red Glasses/red_glasses_3:4.png",
+          "width": 1254,
+          "height": 1254,
+          "roles": ["render", "render · threeQuarter"]
+        }
+      ]
+    }
+  ]
+}
