@@ -2,10 +2,9 @@
 
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
-import {
-  getDeskCatCosmetic,
-  type DeskCatCosmeticId
-} from "../lib/deskcatSprite";
+import type { DeskCatCosmeticId } from "../lib/deskcatSprite";
+import { getManagedCosmetic } from "../lib/appearanceCatalog";
+import { useAppearanceCatalog } from "./AppearanceCatalogProvider";
 
 type RewardStop = {
   label: string;
@@ -45,6 +44,7 @@ export default function ProgressionMeter({
   rewards,
   onDonationConfirmed
 }: ProgressionMeterProps) {
+  const { catalog } = useAppearanceCatalog();
   const [openRewardKey, setOpenRewardKey] = useState<string | null>(null);
   const [isDonationInfoOpen, setIsDonationInfoOpen] = useState(false);
   const [donationAmount, setDonationAmount] = useState("5");
@@ -245,7 +245,7 @@ export default function ProgressionMeter({
         {rewards.map((reward) => {
           const rewardKey = `${reward.label}-${reward.amount}`;
           const preview = reward.cosmeticId
-            ? getDeskCatCosmetic(reward.cosmeticId)
+            ? getManagedCosmetic(catalog, reward.cosmeticId)
             : null;
           const isOpen = openRewardKey === rewardKey;
           const isEarned = currentAmount >= reward.amount;
@@ -310,10 +310,11 @@ export default function ProgressionMeter({
                 >
                   <div className="theme-subsurface flex h-24 items-center justify-center rounded-2xl border p-2">
                     <Image
-                      src={preview.previewSrc}
+                      src={preview.previewSrc.src}
                       alt={preview.label}
                       width={preview.previewSrc.width}
                       height={preview.previewSrc.height}
+                      unoptimized
                       className="h-auto max-h-20 w-auto object-contain"
                     />
                   </div>

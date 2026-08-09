@@ -240,7 +240,8 @@ export default function BatchAssetUploadForm() {
       <h2 className="theme-text-primary text-2xl font-semibold">Batch Upload</h2>
       <p className="theme-text-secondary mt-2 text-sm">
         Select up to {MAX_BATCH_SIZE} PNGs. Each file becomes a row so you can set every asset spec,
-        then save the whole batch with one click.
+        then save the whole batch with one click. Give related preview, view, or pose rows the same
+        cosmetic ID to attach all of those image variants to one cosmetic.
       </p>
 
       <label className="theme-text-secondary mt-5 block text-sm font-medium">

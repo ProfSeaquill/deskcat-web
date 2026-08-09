@@ -1,10 +1,11 @@
 import { createHash, randomUUID } from "node:crypto";
-import { put } from "@vercel/blob";
-import { desc, eq } from "drizzle-orm";
+import { del, put } from "@vercel/blob";
+import { and, desc, eq, isNull } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { getDb } from "../../../db";
 import { adminAuditLogs, cosmeticAssets, cosmetics } from "../../../db/schema";
 import { getAdminSession } from "../../../lib/admin";
+import { getBlobCredentials } from "../../../lib/blob.server";
 import type { DeskCatCosmeticCategory } from "../../../lib/deskcatSprite";
 import type { DeskCatAnchorSlotId } from "../../../lib/deskcatAnchors";
 
@@ -39,17 +40,6 @@ function parsePngDimensions(bytes: Uint8Array) {
     width: view.getUint32(16),
     height: view.getUint32(20)
   };
-}
-
-function getBlobCredentials(request: Request) {
-  const token = process.env.BLOB_READ_WRITE_TOKEN;
-  if (token) return { token };
-
-  const oidcToken = request.headers.get("x-vercel-oidc-token") ?? undefined;
-  const storeId = process.env.BLOB_STORE_ID;
-  if (oidcToken && storeId) return { oidcToken, storeId };
-
-  return null;
 }
 
 export async function GET() {
@@ -160,14 +150,45 @@ export async function POST(request: Request) {
   try {
     const db = getDb();
     const [existingCosmetic] = await db
-      .select({ id: cosmetics.id })
+      .select({
+        id: cosmetics.id,
+        category: cosmetics.category,
+        anchorSlot: cosmetics.anchorSlot
+      })
       .from(cosmetics)
       .where(eq(cosmetics.id, cosmeticId))
       .limit(1);
 
-    if (existingCosmetic) {
-      return jsonError("That cosmetic ID already exists. Choose a different ID.", 409);
+    if (
+      existingCosmetic &&
+      (existingCosmetic.category !== category || existingCosmetic.anchorSlot !== anchorSlot)
+    ) {
+      return jsonError(
+        "Rows sharing a cosmetic ID must use the same category and anchor slot.",
+        409
+      );
     }
+
+    const [existingAsset] = await db
+      .select()
+      .from(cosmeticAssets)
+      .where(
+        and(
+          eq(cosmeticAssets.cosmeticId, cosmeticId),
+          eq(cosmeticAssets.purpose, purpose as "preview" | "render"),
+          assetView
+            ? eq(cosmeticAssets.assetView, assetView as "front" | "threeQuarter")
+            : isNull(cosmeticAssets.assetView),
+          poseId
+            ? eq(
+                cosmeticAssets.poseId,
+                poseId as "logo" | "playing" | "reading" | "sleeping" | "sitting" | "walking"
+              )
+            : isNull(cosmeticAssets.poseId)
+        )
+      )
+      .orderBy(desc(cosmeticAssets.createdAt))
+      .limit(1);
 
     const blob = await put(pathname, arrayBuffer, {
       access: "private",
@@ -176,20 +197,26 @@ export async function POST(request: Request) {
       ...blobCredentials
     });
 
-    await db
-      .insert(cosmetics)
-      .values({
-        id: cosmeticId,
-        label: cosmeticName,
-        description,
-        category: category as DeskCatCosmeticCategory,
-        anchorSlot: anchorSlot as DeskCatAnchorSlotId,
-        status: "draft"
-      });
+    try {
+      if (existingCosmetic) {
+        await db
+          .update(cosmetics)
+          .set({ label: cosmeticName, description, updatedAt: new Date() })
+          .where(eq(cosmetics.id, cosmeticId));
+      } else {
+        await db
+          .insert(cosmetics)
+          .values({
+            id: cosmeticId,
+            label: cosmeticName,
+            description,
+            category: category as DeskCatCosmeticCategory,
+            anchorSlot: anchorSlot as DeskCatAnchorSlotId,
+            status: "draft"
+          });
+      }
 
-    const [asset] = await db
-      .insert(cosmeticAssets)
-      .values({
+      const assetValues = {
         cosmeticId,
         purpose: purpose as "preview" | "render",
         assetView: assetView as "front" | "threeQuarter" | null,
@@ -209,32 +236,48 @@ export async function POST(request: Request) {
         height: dimensions.height,
         checksum,
         accessible,
-        updatedByEmail: session.user.email
-      })
-      .returning();
+        updatedByEmail: session.user.email,
+        updatedAt: new Date()
+      } as const;
 
-    await db.insert(adminAuditLogs).values({
-      actorEmail: session.user.email,
-      action: "cosmetic_asset.upload",
-      targetType: "cosmetic_asset",
-      targetId: asset.id,
-      metadata: {
-        cosmeticId,
-        cosmeticName,
-        category,
-        anchorSlot,
-        purpose,
-        assetView,
-        poseId,
-        pathname: blob.pathname,
-        byteSize: file.size,
-        width: dimensions.width,
-        height: dimensions.height,
-        accessible
+      const [asset] = existingAsset
+        ? await db
+            .update(cosmeticAssets)
+            .set(assetValues)
+            .where(eq(cosmeticAssets.id, existingAsset.id))
+            .returning()
+        : await db.insert(cosmeticAssets).values(assetValues).returning();
+
+      if (existingAsset && existingAsset.storageKey !== blob.pathname) {
+        await del(existingAsset.storageKey, blobCredentials).catch(() => undefined);
       }
-    });
 
-    return NextResponse.json({ asset }, { status: 201 });
+      await db.insert(adminAuditLogs).values({
+        actorEmail: session.user.email,
+        action: existingAsset ? "cosmetic_asset.replace" : "cosmetic_asset.upload",
+        targetType: "cosmetic_asset",
+        targetId: asset.id,
+        metadata: {
+          cosmeticId,
+          cosmeticName,
+          category,
+          anchorSlot,
+          purpose,
+          assetView,
+          poseId,
+          pathname: blob.pathname,
+          byteSize: file.size,
+          width: dimensions.width,
+          height: dimensions.height,
+          accessible
+        }
+      });
+
+      return NextResponse.json({ asset }, { status: existingAsset ? 200 : 201 });
+    } catch (error) {
+      await del(blob.pathname, blobCredentials).catch(() => undefined);
+      throw error;
+    }
   } catch (error) {
     return jsonError(
       error instanceof Error ? error.message : "Could not upload asset.",

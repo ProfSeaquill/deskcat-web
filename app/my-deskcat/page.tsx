@@ -1,11 +1,10 @@
 "use client";
 
-import Image, { type StaticImageData } from "next/image";
+import Image from "next/image";
 import { useState } from "react";
 import PageBackLink from "../components/PageBackLink";
 import DeskCatSprite from "../components/DeskCatSprite";
 import {
-  BACKGROUND_OPTIONS,
   DEFAULT_APPEARANCE_SETTINGS,
   getBackgroundTheme,
   loadAppearanceSettings,
@@ -13,14 +12,18 @@ import {
   type DeskCatBackground
 } from "../lib/appearance";
 import {
-  DEFAULT_DESKCAT_GLASSES_ID,
   DESKCAT_COSMETIC_CATEGORIES,
-  getDeskCatCosmeticsForCategory,
   type DeskCatCosmeticCategory,
   type DeskCatCosmeticSelection,
   type DeskCatEquippedCosmetics
 } from "../lib/deskcatSprite";
+import {
+  getManagedCosmeticsForCategory,
+  type BackgroundTheme,
+  type ManagedImageAsset
+} from "../lib/appearanceCatalog";
 import { useIsClient } from "../lib/useIsClient";
+import { useAppearanceCatalog } from "../components/AppearanceCatalogProvider";
 
 const BACKGROUND_PREVIEW_COUNT = 6;
 
@@ -45,9 +48,10 @@ function getNoneDescription(category: DeskCatCosmeticCategory) {
 
 export default function MyDeskCatPage() {
   const isClient = useIsClient();
+  const { catalog, isLoading, error } = useAppearanceCatalog();
 
   if (!isClient) {
-    const previewTheme = getBackgroundTheme(DEFAULT_APPEARANCE_SETTINGS.background);
+    const previewTheme = getBackgroundTheme(DEFAULT_APPEARANCE_SETTINGS.background, catalog);
 
     return (
       <main
@@ -74,38 +78,49 @@ export default function MyDeskCatPage() {
     );
   }
 
-  return <MyDeskCatEditor />;
+  return (
+    <MyDeskCatEditor
+      key={catalog.revision}
+      catalog={catalog}
+      isLoading={isLoading}
+      error={error}
+    />
+  );
 }
 
-function MyDeskCatEditor() {
+function MyDeskCatEditor({
+  catalog,
+  isLoading,
+  error
+}: Pick<ReturnType<typeof useAppearanceCatalog>, "catalog" | "isLoading" | "error">) {
   const [savedBackground, setSavedBackground] = useState<DeskCatBackground>(
-    () => loadAppearanceSettings().background
+    () => loadAppearanceSettings(catalog).background
   );
   const [draftBackground, setDraftBackground] = useState<DeskCatBackground>(
-    () => loadAppearanceSettings().background
+    () => loadAppearanceSettings(catalog).background
   );
   const [savedCosmetics, setSavedCosmetics] = useState<DeskCatEquippedCosmetics>(
-    () => loadAppearanceSettings().cosmetics
+    () => loadAppearanceSettings(catalog).cosmetics
   );
   const [draftCosmetics, setDraftCosmetics] = useState<DeskCatEquippedCosmetics>(
-    () => loadAppearanceSettings().cosmetics
+    () => loadAppearanceSettings(catalog).cosmetics
   );
   const [showAllBackgrounds, setShowAllBackgrounds] = useState(false);
   const [expandedCategory, setExpandedCategory] = useState<DeskCatCosmeticCategory | null>(null);
 
-  const previewTheme = getBackgroundTheme(draftBackground);
+  const previewTheme = getBackgroundTheme(draftBackground, catalog);
   const hasChanges =
     draftBackground !== savedBackground || !areCosmeticsEqual(draftCosmetics, savedCosmetics);
-  const canExpandBackgrounds = BACKGROUND_OPTIONS.length > BACKGROUND_PREVIEW_COUNT;
+  const canExpandBackgrounds = catalog.backgrounds.length > BACKGROUND_PREVIEW_COUNT;
   const visibleBackgrounds = showAllBackgrounds
-    ? BACKGROUND_OPTIONS
-    : BACKGROUND_OPTIONS.slice(0, BACKGROUND_PREVIEW_COUNT);
+    ? catalog.backgrounds
+    : catalog.backgrounds.slice(0, BACKGROUND_PREVIEW_COUNT);
 
   function applyChanges() {
     saveAppearanceSettings({
       background: draftBackground,
       cosmetics: draftCosmetics
-    });
+    }, catalog);
     setSavedBackground(draftBackground);
     setSavedCosmetics(draftCosmetics);
   }
@@ -114,11 +129,9 @@ function MyDeskCatEditor() {
     category: DeskCatCosmeticCategory,
     selection: DeskCatCosmeticSelection
   ) {
-    const nextSelection =
-      category === "glasses" && selection === "none" ? DEFAULT_DESKCAT_GLASSES_ID : selection;
     setDraftCosmetics((current) => ({
       ...current,
-      [category]: nextSelection
+      [category]: selection
     }));
   }
 
@@ -161,6 +174,11 @@ function MyDeskCatEditor() {
             </div>
 
             <div className="mt-6 grid gap-4 sm:grid-cols-3">
+              {!isLoading && visibleBackgrounds.length === 0 && (
+                <p className="theme-text-secondary text-sm sm:col-span-3">
+                  No managed backgrounds are currently available.
+                </p>
+              )}
               {visibleBackgrounds.map((option) => {
                 const isSelected = option.id === draftBackground;
 
@@ -290,14 +308,14 @@ function MyDeskCatEditor() {
           <div>
             <h2 className="theme-text-primary text-2xl font-semibold">Cosmetics</h2>
             <p className="theme-text-secondary mt-3 max-w-3xl text-sm">
-              Mix and match one cosmetic from each category. DeskCat wears default glasses unless
-              you choose another eyewear option or explicitly remove them.
+              Mix and match one accessible, uploaded cosmetic from each category.
             </p>
+            {error && <p className="mt-2 text-sm text-red-300">{error}</p>}
           </div>
 
           <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             {DESKCAT_COSMETIC_CATEGORIES.map((category) => {
-              const options = getDeskCatCosmeticsForCategory(category.id);
+              const options = getManagedCosmeticsForCategory(catalog, category.id);
               const selectedCosmetic = draftCosmetics[category.id];
               const isExpanded = expandedCategory === category.id;
               const selectedOption = options.find((option) => option.id === selectedCosmetic);
@@ -324,10 +342,11 @@ function MyDeskCatEditor() {
                   >
                     {selectedOption ? (
                       <Image
-                        src={selectedOption.previewSrc}
+                        src={selectedOption.previewSrc.src}
                         alt={selectedOption.label}
                         width={selectedOption.previewSrc.width}
                         height={selectedOption.previewSrc.height}
+                        unoptimized
                         className="h-auto max-h-24 w-auto object-contain"
                       />
                     ) : null}
@@ -360,9 +379,9 @@ function MyDeskCatEditor() {
 
                 if (!category) return null;
 
-                const options = getDeskCatCosmeticsForCategory(category.id);
+                const options = getManagedCosmeticsForCategory(catalog, category.id);
                 const selectedCosmetic = draftCosmetics[category.id];
-                const allowsNone = category.id !== "glasses";
+                const allowsNone = true;
 
                 return (
                   <>
@@ -432,8 +451,8 @@ function CosmeticChoiceCard({
   description: string;
   isSelected: boolean;
   onClick: () => void;
-  previewTheme: ReturnType<typeof getBackgroundTheme>;
-  previewSrc?: StaticImageData;
+  previewTheme: BackgroundTheme;
+  previewSrc?: ManagedImageAsset;
 }) {
   return (
     <button
@@ -452,10 +471,11 @@ function CosmeticChoiceCard({
           }}
         >
           <Image
-            src={previewSrc}
+            src={previewSrc.src}
             alt={label}
             width={previewSrc.width}
             height={previewSrc.height}
+            unoptimized
             className="h-auto max-h-24 w-auto object-contain"
           />
         </div>

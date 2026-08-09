@@ -1,5 +1,8 @@
 import Link from "next/link";
 import { revalidatePath } from "next/cache";
+import { asc, ne } from "drizzle-orm";
+import { getDb } from "../db";
+import { cosmetics } from "../db/schema";
 import { requireAdmin } from "../lib/admin";
 import {
   loadDonationProgress,
@@ -10,13 +13,24 @@ import {
   setConstructionScreenEnabled
 } from "../lib/featureFlags.server";
 import {
-  DESKCAT_COSMETIC_CATEGORIES,
-  DESKCAT_COSMETIC_OPTIONS
+  DESKCAT_COSMETIC_CATEGORIES
 } from "../lib/deskcatSprite";
 import type { DonationProgressSource, DonationReward } from "../lib/donations";
 import { loadRecentDonations } from "../lib/donation-payments.server";
 
 const DONATION_REWARD_ROW_COUNT = 3;
+
+async function loadManagedCosmetics() {
+  try {
+    return await getDb()
+      .select({ id: cosmetics.id, label: cosmetics.label })
+      .from(cosmetics)
+      .where(ne(cosmetics.status, "retired"))
+      .orderBy(asc(cosmetics.sortOrder), asc(cosmetics.label));
+  } catch {
+    return [];
+  }
+}
 
 function formatCurrency(amount: number, currencyCode: string) {
   return new Intl.NumberFormat("en-US", {
@@ -122,6 +136,7 @@ export default async function AdminPage() {
   const constructionScreenEnabled = await isConstructionScreenEnabled();
   const donationProgress = await loadDonationProgress();
   const recentDonations = await loadRecentDonations();
+  const managedCosmetics = await loadManagedCosmetics();
   const donationPercent =
     donationProgress.goalAmount > 0
       ? Math.min(100, Math.round((donationProgress.currentAmount / donationProgress.goalAmount) * 100))
@@ -171,7 +186,7 @@ export default async function AdminPage() {
           />
           <StatusCard
             label="Cosmetics"
-            value={String(DESKCAT_COSMETIC_OPTIONS.length)}
+            value={String(managedCosmetics.length)}
             detail={`${DESKCAT_COSMETIC_CATEGORIES.length} categories`}
           />
           <StatusCard
@@ -264,7 +279,7 @@ export default async function AdminPage() {
                           className="theme-input mt-2 w-full rounded-xl border px-3 py-2"
                         >
                           <option value="">None</option>
-                          {DESKCAT_COSMETIC_OPTIONS.map((cosmetic) => (
+                          {managedCosmetics.map((cosmetic) => (
                             <option key={cosmetic.id} value={cosmetic.id}>
                               {cosmetic.label}
                             </option>

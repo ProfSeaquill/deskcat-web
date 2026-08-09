@@ -4,9 +4,10 @@ import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { usePathname } from "next/navigation";
 import { loadLastReaction } from "../lib/storage";
 import { APPEARANCE_EVENT, loadAppearanceSettings } from "../lib/appearance";
-import { DESKCAT_STAGE_POSES } from "../lib/deskcatSprite";
+import { DEFAULT_DESKCAT_COSMETICS, DESKCAT_STAGE_POSES } from "../lib/deskcatSprite";
 import DeskCatSprite from "./DeskCatSprite";
 import SpeechBubble from "./SpeechBubble";
+import { useAppearanceCatalog } from "./AppearanceCatalogProvider";
 
 const PLATFORM_POSITIONS = [
   { name: "far-left", leftPercent: 22 },
@@ -42,6 +43,7 @@ function subscribeToAppearanceStore(onStoreChange: () => void) {
 }
 
 export default function CatStage() {
+  const { catalog } = useAppearanceCatalog();
   const pathname = usePathname();
   const isHome = pathname === "/";
   const isReflect = pathname === "/reflect";
@@ -75,8 +77,8 @@ export default function CatStage() {
   const message = isReflect ? previewMessage : lastMessage;
   const cosmetics = useSyncExternalStore(
     subscribeToAppearanceStore,
-    () => loadAppearanceSettings().cosmetics,
-    () => loadAppearanceSettings().cosmetics
+    () => loadAppearanceSettings(catalog).cosmetics,
+    () => DEFAULT_DESKCAT_COSMETICS
   );
 
   const { slot, pose } = useMemo(() => {

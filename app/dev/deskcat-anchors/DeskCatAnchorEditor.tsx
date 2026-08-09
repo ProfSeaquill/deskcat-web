@@ -9,6 +9,7 @@ import {
   type PointerEvent as ReactPointerEvent
 } from "react";
 import DeskCatSprite from "../../components/DeskCatSprite";
+import { useAppearanceCatalog } from "../../components/AppearanceCatalogProvider";
 import {
   DESKCAT_ANCHOR_SLOT_IDS,
   DESKCAT_POSE_IDS,
@@ -23,16 +24,16 @@ import {
   type DeskCatStageTransform
 } from "../../lib/deskcatAnchors";
 import {
-  DEFAULT_DESKCAT_GLASSES_ID,
   DESKCAT_COSMETIC_CATEGORIES,
   NONE_DESKCAT_COSMETIC_ID,
-  getDeskCatCosmetic,
-  getDeskCatCosmeticsForCategory,
   type DeskCatCosmeticCategory,
-  type DeskCatCosmeticId,
   type DeskCatCosmeticSelection,
   type DeskCatEquippedCosmetics
 } from "../../lib/deskcatSprite";
+import {
+  getManagedCosmetic,
+  getManagedCosmeticsForCategory
+} from "../../lib/appearanceCatalog";
 
 const SLOT_META: Record<DeskCatAnchorSlotId, { label: string; color: string }> = {
   eyes: { label: "Eyes", color: "#43d7ff" },
@@ -42,9 +43,9 @@ const SLOT_META: Record<DeskCatAnchorSlotId, { label: string; color: string }> =
 };
 
 const PREVIEW_COSMETICS: DeskCatEquippedCosmetics = {
-  head: "red-top-hat",
-  neck: "red-bowtie",
-  glasses: DEFAULT_DESKCAT_GLASSES_ID,
+  head: "none",
+  neck: "none",
+  glasses: "none",
   tail: "none"
 };
 
@@ -102,6 +103,7 @@ export default function DeskCatAnchorEditor({
   initialDocument: DeskCatAnchorDocument;
   requiresToken: boolean;
 }) {
+  const { catalog } = useAppearanceCatalog();
   const initialSnapshot = useRef(createStableJsonSnapshot(initialDocument));
   const canvasRef = useRef<HTMLDivElement>(null);
   const [document, setDocument] = useState(() => cloneDocument(initialDocument));
@@ -123,8 +125,8 @@ export default function DeskCatAnchorEditor({
   const pose = document.poses[poseId];
   const slotCategory = DESKCAT_COSMETIC_CATEGORIES.find((category) => category.anchorSlot === slotId);
   const slotSelection = slotCategory ? previewCosmetics[slotCategory.id] : NONE_DESKCAT_COSMETIC_ID;
-  const activeCosmeticId = slotSelection !== NONE_DESKCAT_COSMETIC_ID ? (slotSelection as DeskCatCosmeticId) : null;
-  const activeCosmetic = activeCosmeticId ? getDeskCatCosmetic(activeCosmeticId) : null;
+  const activeCosmeticId = slotSelection !== NONE_DESKCAT_COSMETIC_ID ? slotSelection : null;
+  const activeCosmetic = activeCosmeticId ? getManagedCosmetic(catalog, activeCosmeticId) : null;
   const slotAnchor = pose.anchors[slotId];
   const anchor = activeCosmeticId ? pose.cosmeticAnchors?.[activeCosmeticId] ?? pose.anchors[slotId] : pose.anchors[slotId];
   const cutoutLayers = pose.cutoutLayers ?? [];
@@ -569,7 +571,7 @@ export default function DeskCatAnchorEditor({
                       className="mt-2 min-h-10 w-full rounded-md border border-white/15 bg-[#0f141a] px-3 text-sm text-white outline-none focus:border-[#43d7ff]"
                     >
                       <option value={NONE_DESKCAT_COSMETIC_ID}>None</option>
-                      {getDeskCatCosmeticsForCategory(category.id).map((cosmetic) => (
+                      {getManagedCosmeticsForCategory(catalog, category.id).map((cosmetic) => (
                         <option key={cosmetic.id} value={cosmetic.id}>
                           {cosmetic.label}
                         </option>

@@ -27,6 +27,11 @@ export const cosmeticStatusEnum = pgEnum("cosmetic_status", [
   "retired"
 ]);
 
+export const backgroundSurfaceModeEnum = pgEnum("background_surface_mode", [
+  "dark",
+  "light"
+]);
+
 export const anchorSlotEnum = pgEnum("anchor_slot", ["eyes", "head", "neck", "tail"]);
 
 export const poseIdEnum = pgEnum("pose_id", [
@@ -94,6 +99,30 @@ export const cosmeticAssets = pgTable(
       table.assetView,
       table.poseId
     )
+  ]
+);
+
+export const appearanceBackgrounds = pgTable(
+  "appearance_backgrounds",
+  {
+    id: varchar("id", { length: 80 }).primaryKey(),
+    label: text("label").notNull(),
+    description: text("description").notNull().default(""),
+    background: text("background").notNull(),
+    foreground: varchar("foreground", { length: 120 }).notNull(),
+    accent: varchar("accent", { length: 120 }).notNull(),
+    border: varchar("border", { length: 160 }).notNull(),
+    swatches: jsonb("swatches").$type<string[]>().notNull().default([]),
+    surfaceMode: backgroundSurfaceModeEnum("surface_mode").notNull().default("dark"),
+    accessible: boolean("accessible").notNull().default(true),
+    sortOrder: integer("sort_order").notNull().default(0),
+    updatedByEmail: text("updated_by_email"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow()
+  },
+  (table) => [
+    index("appearance_backgrounds_accessible_idx").on(table.accessible),
+    index("appearance_backgrounds_sort_order_idx").on(table.sortOrder)
   ]
 );
 
@@ -193,6 +222,8 @@ export type Cosmetic = typeof cosmetics.$inferSelect;
 export type NewCosmetic = typeof cosmetics.$inferInsert;
 export type CosmeticAsset = typeof cosmeticAssets.$inferSelect;
 export type NewCosmeticAsset = typeof cosmeticAssets.$inferInsert;
+export type AppearanceBackground = typeof appearanceBackgrounds.$inferSelect;
+export type NewAppearanceBackground = typeof appearanceBackgrounds.$inferInsert;
 export type FeatureFlag = typeof featureFlags.$inferSelect;
 export type NewFeatureFlag = typeof featureFlags.$inferInsert;
 export type DonationSettings = typeof donationSettings.$inferSelect;

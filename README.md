@@ -43,9 +43,9 @@ npm run db:migrate
 npm run db:studio
 ```
 
-The current user-facing cosmetics and progress flows still use the existing local/code-backed MVP
-storage. The initial database schema is only a foundation for admin-managed cosmetics, asset
-metadata, pose placements, and audit logging.
+The user-facing appearance catalog is database-backed. Accessible cosmetic assets, pose placements,
+and background themes are loaded from Postgres; private cosmetic PNGs are streamed through an
+access-checked same-origin route instead of exposing Blob credentials or private URLs.
 
 ## Admin asset uploads
 
@@ -53,12 +53,16 @@ Connect a Vercel Blob store to the project and enable access to System Environme
 OIDC authentication. The production path uses `BLOB_STORE_ID` plus Vercel's runtime
 `x-vercel-oidc-token` header. For local development outside Vercel, set `BLOB_READ_WRITE_TOKEN` as
 a fallback. Uploads are stored in Vercel Blob and recorded in the `cosmetic_assets` table. The
-public DeskCat runtime does not use uploaded assets yet.
+public DeskCat runtime only includes assets whose `accessible` value is enabled and whose cosmetic
+has not been retired.
 
 The asset manager supports staging up to 20 PNGs in a batch table, editing each row's category,
 anchor, purpose, view, pose, and app access, and saving the batch with one action. Former built-in
 editor entries are no longer mixed into the managed asset list. Their PNGs, metadata manifest, and
 source definitions are backed up under `deskcat-assets/built-in-archive`.
+
+Background themes are stored in `appearance_backgrounds`. Run `npm run db:migrate` after pulling
+schema changes before creating themes in the asset manager.
 
 ## DeskCat anchor editor
 

@@ -2,9 +2,10 @@
 
 import { useEffect } from "react";
 import { APPEARANCE_EVENT, getBackgroundTheme, loadAppearanceSettings } from "../lib/appearance";
+import { useAppearanceCatalog } from "./AppearanceCatalogProvider";
 
-function syncAppearanceToDocument() {
-  const theme = getBackgroundTheme(loadAppearanceSettings().background);
+function syncAppearanceToDocument(catalog: ReturnType<typeof useAppearanceCatalog>["catalog"]) {
+  const theme = getBackgroundTheme(loadAppearanceSettings(catalog).background, catalog);
   const root = document.documentElement;
 
   root.style.background = theme.background;
@@ -35,9 +36,11 @@ function syncAppearanceToDocument() {
 }
 
 export default function AppearanceController() {
+  const { catalog } = useAppearanceCatalog();
+
   useEffect(() => {
     const handleAppearanceChange = () => {
-      syncAppearanceToDocument();
+      syncAppearanceToDocument(catalog);
     };
 
     handleAppearanceChange();
@@ -49,7 +52,7 @@ export default function AppearanceController() {
       window.removeEventListener(APPEARANCE_EVENT, handleAppearanceChange);
       window.removeEventListener("storage", handleAppearanceChange);
     };
-  }, []);
+  }, [catalog]);
 
   return null;
 }

@@ -1,11 +1,4 @@
 import type { StaticImageData } from "next/image";
-import defaultGlasses from "@/art/Images/Accessories/Glasses/glasses_default.png";
-import redGlassesThreeQuarter from "@/art/Images/Accessories/Glasses/Red Glasses/red_glasses_3:4.png";
-import redGlassesFront from "@/art/Images/Accessories/Glasses/Red Glasses/red_glasses_front.png";
-import redTopHatThreeQuarter from "@/art/Images/Accessories/Head/Top Hat/red_top hat_3:4.png";
-import redTopHatFront from "@/art/Images/Accessories/Head/Top Hat/red_top hat_front.png";
-import redBowtieThreeQuarter from "@/art/Images/Accessories/Neck/red_bowtie_3:4.png";
-import redBowtieFront from "@/art/Images/Accessories/Neck/red_bowtie_front.png";
 import catPlaying from "@/art/Images/cat/playing.png";
 import catReading from "@/art/Images/cat/reading.png";
 import catSleeping from "@/art/Images/cat/sleeping.png";
@@ -14,7 +7,6 @@ import catWalking from "@/art/Images/cat/walking.png";
 import deskcatLogo from "@/art/Images/logo.png";
 import {
   DESKCAT_ANCHOR_DATA,
-  type DeskCatAnchorAssetView,
   type DeskCatAnchorSlotId,
   type DeskCatPoseId,
   type DeskCatPoseLayout
@@ -23,8 +15,8 @@ import {
 export type { DeskCatAnchor, DeskCatAnchorAssetView, DeskCatAnchorSlotId, DeskCatPoseId } from "./deskcatAnchors";
 
 export type DeskCatCosmeticCategory = "head" | "neck" | "tail" | "glasses";
-export type DeskCatCosmeticId = "red-bowtie" | "red-top-hat" | "glasses-default" | "red-glasses";
-export type DeskCatCosmeticSelection = DeskCatCosmeticId | "none";
+export type DeskCatCosmeticId = string;
+export type DeskCatCosmeticSelection = string;
 export type DeskCatEquippedCosmetics = Record<DeskCatCosmeticCategory, DeskCatCosmeticSelection>;
 
 export type DeskCatPose = DeskCatPoseLayout & {
@@ -39,24 +31,7 @@ export type DeskCatCosmeticCategoryDefinition = {
   anchorSlot: DeskCatAnchorSlotId;
 };
 
-export type DeskCatCosmetic = {
-  id: DeskCatCosmeticId;
-  label: string;
-  description: string;
-  category: DeskCatCosmeticCategory;
-  anchorSlot: DeskCatAnchorSlotId;
-  previewSrc: StaticImageData;
-  renderSrc: StaticImageData;
-  renderSrcByView?: Partial<Record<DeskCatAnchorAssetView, StaticImageData>>;
-  poseRenderSrc?: Partial<Record<DeskCatPoseId, StaticImageData>>;
-  scale: number;
-  offsetX: number;
-  offsetY: number;
-  rotationOffset: number;
-};
-
 export const NONE_DESKCAT_COSMETIC_ID = "none" as const;
-export const DEFAULT_DESKCAT_GLASSES_ID = "glasses-default" as const;
 
 export const DESKCAT_COSMETIC_CATEGORIES: readonly DeskCatCosmeticCategoryDefinition[] = [
   { id: "head", label: "Head", description: "Hats and other headwear live here.", anchorSlot: "head" },
@@ -66,7 +41,7 @@ export const DESKCAT_COSMETIC_CATEGORIES: readonly DeskCatCosmeticCategoryDefini
 ] as const;
 
 export function createDefaultDeskCatCosmetics(): DeskCatEquippedCosmetics {
-  return { head: "none", neck: "none", tail: "none", glasses: DEFAULT_DESKCAT_GLASSES_ID };
+  return { head: "none", neck: "none", tail: "none", glasses: "none" };
 }
 
 export const DEFAULT_DESKCAT_COSMETICS = createDefaultDeskCatCosmetics();
@@ -88,48 +63,10 @@ const ALL_DESKCAT_POSES = (Object.keys(POSE_IMAGES) as DeskCatPoseId[]).map((id)
 
 export const DESKCAT_STAGE_POSES = ALL_DESKCAT_POSES.filter((pose) => pose.id !== "logo");
 
-export const DESKCAT_COSMETIC_OPTIONS: readonly DeskCatCosmetic[] = [
-  {
-    id: "red-bowtie", label: "Red Bowtie", description: "A bright red bowtie for DeskCat's neck.",
-    category: "neck", anchorSlot: "neck", previewSrc: redBowtieFront, renderSrc: redBowtieThreeQuarter,
-    renderSrcByView: { front: redBowtieFront, threeQuarter: redBowtieThreeQuarter },
-    poseRenderSrc: { logo: redBowtieFront, reading: redBowtieFront, sitting: redBowtieFront, sleeping: redBowtieFront, walking: redBowtieFront },
-    scale: 1, offsetX: 0, offsetY: 0, rotationOffset: 0
-  },
-  {
-    id: "red-top-hat", label: "Red Top Hat", description: "A bright red top hat for DeskCat's head.",
-    category: "head", anchorSlot: "head", previewSrc: redTopHatFront, renderSrc: redTopHatThreeQuarter,
-    renderSrcByView: { front: redTopHatFront, threeQuarter: redTopHatThreeQuarter },
-    poseRenderSrc: { logo: redTopHatFront, reading: redTopHatFront, sitting: redTopHatFront, sleeping: redTopHatFront, walking: redTopHatFront },
-    scale: 1.18, offsetX: 0, offsetY: -0.05, rotationOffset: 0
-  },
-  {
-    id: "glasses-default", label: "Default Glasses", description: "DeskCat's regular black glasses.",
-    category: "glasses", anchorSlot: "eyes", previewSrc: defaultGlasses, renderSrc: defaultGlasses,
-    renderSrcByView: { front: defaultGlasses, threeQuarter: defaultGlasses },
-    scale: 1, offsetX: 0, offsetY: 0, rotationOffset: 0
-  },
-  {
-    id: "red-glasses", label: "Red Glasses", description: "A bright red pair of glasses for DeskCat.",
-    category: "glasses", anchorSlot: "eyes", previewSrc: redGlassesFront, renderSrc: redGlassesThreeQuarter,
-    renderSrcByView: { front: redGlassesFront, threeQuarter: redGlassesThreeQuarter },
-    poseRenderSrc: { logo: redGlassesFront, reading: redGlassesFront, sitting: redGlassesFront, sleeping: redGlassesFront, walking: redGlassesFront },
-    scale: 1, offsetX: 0, offsetY: 0, rotationOffset: 0
-  }
-];
-
 export function getDeskCatPose(poseId: DeskCatPoseId): DeskCatPose {
   return ALL_DESKCAT_POSES.find((pose) => pose.id === poseId) ?? ALL_DESKCAT_POSES[1];
 }
 
-export function getDeskCatCosmetic(cosmeticId: DeskCatCosmeticId) {
-  return DESKCAT_COSMETIC_OPTIONS.find((cosmetic) => cosmetic.id === cosmeticId) ?? DESKCAT_COSMETIC_OPTIONS[0];
-}
-
-export function getDeskCatCosmeticsForCategory(category: DeskCatCosmeticCategory) {
-  return DESKCAT_COSMETIC_OPTIONS.filter((cosmetic) => cosmetic.category === category);
-}
-
 export function isDeskCatCosmeticId(value: unknown): value is DeskCatCosmeticId {
-  return DESKCAT_COSMETIC_OPTIONS.some((cosmetic) => cosmetic.id === value);
+  return typeof value === "string" && /^[a-z0-9][a-z0-9-]{0,79}$/.test(value);
 }

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Fredoka, Geist, Geist_Mono } from "next/font/google";
 import { Suspense } from "react";
 import AppearanceController from "./components/AppearanceController";
+import AppearanceCatalogProvider from "./components/AppearanceCatalogProvider";
 import AppWarmup from "./components/AppWarmup";
 import AuthProvider from "./components/AuthProvider";
 import GoogleAnalytics from "./components/GoogleAnalytics";
@@ -40,10 +41,12 @@ export default function RootLayout({
           <GoogleAnalytics />
         </Suspense>
         <AuthProvider>
-          <AppearanceController />
-          <AppWarmup />
-          <GlobalAccountLayer />
-          {children}
+          <AppearanceCatalogProvider>
+            <AppearanceController />
+            <AppWarmup />
+            <GlobalAccountLayer />
+            {children}
+          </AppearanceCatalogProvider>
         </AuthProvider>
       </body>
     </html>

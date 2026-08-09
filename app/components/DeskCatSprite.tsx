@@ -7,11 +7,12 @@ import {
   DEFAULT_DESKCAT_COSMETICS,
   NONE_DESKCAT_COSMETIC_ID,
   getDeskCatPose,
-  getDeskCatCosmetic,
   type DeskCatEquippedCosmetics,
   type DeskCatPoseId
 } from "../lib/deskcatSprite";
+import { getManagedCosmetic } from "../lib/appearanceCatalog";
 import type { DeskCatPoseLayout } from "../lib/deskcatAnchors";
+import { useAppearanceCatalog } from "./AppearanceCatalogProvider";
 
 type DeskCatSpriteProps = {
   poseId: DeskCatPoseId;
@@ -34,19 +35,21 @@ export default function DeskCatSprite({
   applyStageTransform = true,
   overlay
 }: DeskCatSpriteProps) {
+  const { catalog } = useAppearanceCatalog();
   const pose = getDeskCatPose(poseId);
   const layout = layoutOverride ?? pose;
   const equippedCosmetics = DESKCAT_COSMETIC_CATEGORIES.flatMap(({ id: category }) => {
     const selection = cosmetics[category];
     if (selection === NONE_DESKCAT_COSMETIC_ID) return [];
 
-    const cosmetic = getDeskCatCosmetic(selection);
+    const cosmetic = getManagedCosmetic(catalog, selection);
+    if (!cosmetic) return [];
     const slotAnchor = layout.anchors[cosmetic.anchorSlot];
     if (!slotAnchor || slotAnchor.visible === false) return [];
-    const anchor = layout.cosmeticAnchors?.[cosmetic.id] ?? slotAnchor;
+    const anchor = cosmetic.poseAnchors[pose.id] ?? layout.cosmeticAnchors?.[cosmetic.id] ?? slotAnchor;
     if (!anchor || anchor.visible === false) return [];
     const assetView = anchor?.assetView ?? "front";
-    const asset = cosmetic.renderSrcByView?.[assetView] ?? cosmetic.poseRenderSrc?.[pose.id] ?? cosmetic.renderSrc;
+    const asset = cosmetic.poseRenderSrc[pose.id] ?? cosmetic.renderSrcByView[assetView] ?? cosmetic.renderSrc;
     return asset ? [{ cosmetic, anchor, asset }] : [];
   });
 
@@ -94,12 +97,13 @@ export default function DeskCatSprite({
         {equippedCosmetics.map(({ cosmetic, anchor, asset }) => (
           <Image
             key={cosmetic.id}
-            src={asset}
+            src={asset.src}
             alt=""
             aria-hidden="true"
             width={asset.width}
             height={asset.height}
             sizes={sizes}
+            unoptimized
             className="pointer-events-none absolute"
             style={{
               left: `${(anchor.x + cosmetic.offsetX) * 100}%`,

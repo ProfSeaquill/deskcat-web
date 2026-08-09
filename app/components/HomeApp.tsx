@@ -16,6 +16,7 @@ import AccountControl from "./AccountControl";
 import { getCatGreeting } from "../lib/cat";
 import { APPEARANCE_EVENT, loadAppearanceSettings } from "../lib/appearance";
 import { DEFAULT_DESKCAT_COSMETICS } from "../lib/deskcatSprite";
+import { useAppearanceCatalog } from "./AppearanceCatalogProvider";
 
 function subscribeToAppearanceStore(onStoreChange: () => void) {
   window.addEventListener(APPEARANCE_EVENT, onStoreChange);
@@ -28,6 +29,7 @@ function subscribeToAppearanceStore(onStoreChange: () => void) {
 }
 
 export default function HomeApp() {
+  const { catalog } = useAppearanceCatalog();
   const router = useRouter();
   const isClient = useIsClient();
   const [sessionType, setSessionType] = useState("Sprint");
@@ -37,7 +39,7 @@ export default function HomeApp() {
   const streak = computeStreaks(isClient ? loadSessions() : []);
   const cosmetics = useSyncExternalStore(
     subscribeToAppearanceStore,
-    () => loadAppearanceSettings().cosmetics,
+    () => loadAppearanceSettings(catalog).cosmetics,
     () => DEFAULT_DESKCAT_COSMETICS
   );
 
