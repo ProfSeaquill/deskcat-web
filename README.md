@@ -54,7 +54,9 @@ OIDC authentication. The production path uses `BLOB_STORE_ID` plus Vercel's runt
 `x-vercel-oidc-token` header. For local development outside Vercel, set `BLOB_READ_WRITE_TOKEN` as
 a fallback. Uploads are stored in Vercel Blob and recorded in the `cosmetic_assets` table. The
 public DeskCat runtime only includes assets whose `accessible` value is enabled and whose cosmetic
-has not been retired.
+has not been retired. DeskCat's standard black glasses remain a core default: every DeskCat wears
+them unless another accessible glasses asset is selected, and the appearance editor does not offer
+a glasses `None` option.
 
 The asset manager supports staging up to 20 PNGs in a batch table, editing each row's category,
 anchor, purpose, view, pose, and app access, and saving the batch with one action. Former built-in

@@ -381,7 +381,7 @@ function MyDeskCatEditor({
 
                 const options = getManagedCosmeticsForCategory(catalog, category.id);
                 const selectedCosmetic = draftCosmetics[category.id];
-                const allowsNone = true;
+                const allowsNone = category.id !== "glasses";
 
                 return (
                   <>

@@ -5,6 +5,7 @@ import {
   type AppearanceCatalog
 } from "./appearanceCatalog";
 import {
+  DEFAULT_DESKCAT_GLASSES_ID,
   NONE_DESKCAT_COSMETIC_ID,
   createDefaultDeskCatCosmetics,
   type DeskCatCosmeticCategory,
@@ -45,11 +46,13 @@ function normalizeCosmeticSelection(
   value: unknown,
   catalog: AppearanceCatalog
 ): DeskCatCosmeticSelection {
-  if (value === NONE_DESKCAT_COSMETIC_ID) return NONE_DESKCAT_COSMETIC_ID;
-  if (typeof value !== "string") return NONE_DESKCAT_COSMETIC_ID;
+  const fallback =
+    category === "glasses" ? DEFAULT_DESKCAT_GLASSES_ID : NONE_DESKCAT_COSMETIC_ID;
+  if (value === NONE_DESKCAT_COSMETIC_ID) return fallback;
+  if (typeof value !== "string") return fallback;
 
   const cosmetic = getManagedCosmetic(catalog, value);
-  return cosmetic?.category === category ? value : NONE_DESKCAT_COSMETIC_ID;
+  return cosmetic?.category === category ? value : fallback;
 }
 
 function normalizeCosmetics(

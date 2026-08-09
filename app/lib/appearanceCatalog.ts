@@ -1,14 +1,19 @@
+import type { StaticImageData } from "next/image";
+import defaultGlasses from "@/art/Images/Accessories/Glasses/glasses_default.png";
 import type {
   DeskCatAnchor,
   DeskCatAnchorAssetView,
   DeskCatAnchorSlotId,
   DeskCatPoseId
 } from "./deskcatAnchors";
-import type { DeskCatCosmeticCategory } from "./deskcatSprite";
+import {
+  DEFAULT_DESKCAT_GLASSES_ID,
+  type DeskCatCosmeticCategory
+} from "./deskcatSprite";
 
 export type ManagedImageAsset = {
   id: string;
-  src: string;
+  src: string | StaticImageData;
   width: number;
   height: number;
 };
@@ -154,6 +159,33 @@ export const EMPTY_APPEARANCE_CATALOG: AppearanceCatalog = {
   backgrounds: []
 };
 
+const DEFAULT_GLASSES_ASSET: ManagedImageAsset = {
+  id: "core-glasses-default",
+  src: defaultGlasses,
+  width: defaultGlasses.width,
+  height: defaultGlasses.height
+};
+
+export const DEFAULT_DESKCAT_GLASSES_COSMETIC: ManagedCosmetic = {
+  id: DEFAULT_DESKCAT_GLASSES_ID,
+  label: "Black Glasses",
+  description: "DeskCat's standard black glasses.",
+  category: "glasses",
+  anchorSlot: "eyes",
+  previewSrc: DEFAULT_GLASSES_ASSET,
+  renderSrc: DEFAULT_GLASSES_ASSET,
+  renderSrcByView: {
+    front: DEFAULT_GLASSES_ASSET,
+    threeQuarter: DEFAULT_GLASSES_ASSET
+  },
+  poseRenderSrc: {},
+  poseAnchors: {},
+  scale: 1,
+  offsetX: 0,
+  offsetY: 0,
+  rotationOffset: 0
+};
+
 export function buildBackgroundTheme(record: BackgroundThemeRecord): BackgroundTheme {
   return {
     ...(record.surfaceMode === "light" ? LIGHT_SURFACE_THEME : DARK_SURFACE_THEME),
@@ -163,6 +195,9 @@ export function buildBackgroundTheme(record: BackgroundThemeRecord): BackgroundT
 }
 
 export function getManagedCosmetic(catalog: AppearanceCatalog, cosmeticId: string) {
+  if (cosmeticId === DEFAULT_DESKCAT_GLASSES_ID) {
+    return DEFAULT_DESKCAT_GLASSES_COSMETIC;
+  }
   return catalog.cosmetics.find((cosmetic) => cosmetic.id === cosmeticId) ?? null;
 }
 
@@ -170,5 +205,12 @@ export function getManagedCosmeticsForCategory(
   catalog: AppearanceCatalog,
   category: DeskCatCosmeticCategory
 ) {
-  return catalog.cosmetics.filter((cosmetic) => cosmetic.category === category);
+  const managedCosmetics = catalog.cosmetics.filter(
+    (cosmetic) =>
+      cosmetic.category === category && cosmetic.id !== DEFAULT_DESKCAT_GLASSES_ID
+  );
+
+  return category === "glasses"
+    ? [DEFAULT_DESKCAT_GLASSES_COSMETIC, ...managedCosmetics]
+    : managedCosmetics;
 }

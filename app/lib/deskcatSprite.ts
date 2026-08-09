@@ -32,6 +32,7 @@ export type DeskCatCosmeticCategoryDefinition = {
 };
 
 export const NONE_DESKCAT_COSMETIC_ID = "none" as const;
+export const DEFAULT_DESKCAT_GLASSES_ID = "glasses-default" as const;
 
 export const DESKCAT_COSMETIC_CATEGORIES: readonly DeskCatCosmeticCategoryDefinition[] = [
   { id: "head", label: "Head", description: "Hats and other headwear live here.", anchorSlot: "head" },
@@ -41,7 +42,12 @@ export const DESKCAT_COSMETIC_CATEGORIES: readonly DeskCatCosmeticCategoryDefini
 ] as const;
 
 export function createDefaultDeskCatCosmetics(): DeskCatEquippedCosmetics {
-  return { head: "none", neck: "none", tail: "none", glasses: "none" };
+  return {
+    head: NONE_DESKCAT_COSMETIC_ID,
+    neck: NONE_DESKCAT_COSMETIC_ID,
+    tail: NONE_DESKCAT_COSMETIC_ID,
+    glasses: DEFAULT_DESKCAT_GLASSES_ID
+  };
 }
 
 export const DEFAULT_DESKCAT_COSMETICS = createDefaultDeskCatCosmetics();

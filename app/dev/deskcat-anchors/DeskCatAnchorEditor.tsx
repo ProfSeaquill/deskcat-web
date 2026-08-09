@@ -24,6 +24,7 @@ import {
   type DeskCatStageTransform
 } from "../../lib/deskcatAnchors";
 import {
+  DEFAULT_DESKCAT_GLASSES_ID,
   DESKCAT_COSMETIC_CATEGORIES,
   NONE_DESKCAT_COSMETIC_ID,
   type DeskCatCosmeticCategory,
@@ -45,7 +46,7 @@ const SLOT_META: Record<DeskCatAnchorSlotId, { label: string; color: string }> =
 const PREVIEW_COSMETICS: DeskCatEquippedCosmetics = {
   head: "none",
   neck: "none",
-  glasses: "none",
+  glasses: DEFAULT_DESKCAT_GLASSES_ID,
   tail: "none"
 };
 
@@ -570,7 +571,9 @@ export default function DeskCatAnchorEditor({
                       }
                       className="mt-2 min-h-10 w-full rounded-md border border-white/15 bg-[#0f141a] px-3 text-sm text-white outline-none focus:border-[#43d7ff]"
                     >
-                      <option value={NONE_DESKCAT_COSMETIC_ID}>None</option>
+                      {category.id !== "glasses" && (
+                        <option value={NONE_DESKCAT_COSMETIC_ID}>None</option>
+                      )}
                       {getManagedCosmeticsForCategory(catalog, category.id).map((cosmetic) => (
                         <option key={cosmetic.id} value={cosmetic.id}>
                           {cosmetic.label}
