@@ -1,5 +1,9 @@
-CREATE TYPE "public"."background_surface_mode" AS ENUM('dark', 'light');--> statement-breakpoint
-CREATE TABLE "appearance_backgrounds" (
+DO $$ BEGIN
+ CREATE TYPE "public"."background_surface_mode" AS ENUM('dark', 'light');
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;--> statement-breakpoint
+CREATE TABLE IF NOT EXISTS "appearance_backgrounds" (
 	"id" varchar(80) PRIMARY KEY NOT NULL,
 	"label" text NOT NULL,
 	"description" text DEFAULT '' NOT NULL,
@@ -16,5 +20,5 @@ CREATE TABLE "appearance_backgrounds" (
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE INDEX "appearance_backgrounds_accessible_idx" ON "appearance_backgrounds" USING btree ("accessible");--> statement-breakpoint
-CREATE INDEX "appearance_backgrounds_sort_order_idx" ON "appearance_backgrounds" USING btree ("sort_order");
+CREATE INDEX IF NOT EXISTS "appearance_backgrounds_accessible_idx" ON "appearance_backgrounds" USING btree ("accessible");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "appearance_backgrounds_sort_order_idx" ON "appearance_backgrounds" USING btree ("sort_order");
