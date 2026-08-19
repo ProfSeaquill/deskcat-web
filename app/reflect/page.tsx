@@ -1,16 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import CatStage from "../components/CatStage";
 import PageBackLink from "../components/PageBackLink";
 import { getCatReaction } from "../lib/cat";
 import { deriveReflectionMetadata } from "../lib/reflection";
 import {
+  BUNDLED_REFLECTION_REVISION,
   REFLECTION_TREE,
   REFLECTION_TREE_VERSION,
-  type ReflectionAnswer
+  isRenderableReflectionTree,
+  type ReflectionAnswer,
+  type ReflectionTree
 } from "../lib/reflectionTree";
 import {
   computeStreaks,
@@ -20,6 +23,8 @@ import {
   type ReflectionPathEntry,
   type SessionLog
 } from "../lib/storage";
+
+type PublishedTree = { tree: ReflectionTree; revision: number };
 
 function publishCatPreview(message: string | null) {
   if (typeof window === "undefined") return;
@@ -79,18 +84,62 @@ export default function ReflectPage() {
 }
 
 function ReflectPageContent() {
-  const t = REFLECTION_TREE;
-
   const router = useRouter();
   const searchParams = useSearchParams();
   const sessionType = searchParams.get("type") ?? "Sprint";
 
+  // The bundled tree renders immediately, so there is no spinner between
+  // finishing a session and being asked how it went. The published revision, if
+  // there is one, is swapped in behind that.
+  const [t, setTree] = useState<ReflectionTree>(REFLECTION_TREE);
+  const [revision, setRevision] = useState<number>(BUNDLED_REFLECTION_REVISION);
+
   const [catMessage, setCatMessage] = useState<string | null>(null);
-  const [nodeId, setNodeId] = useState<string>(t.start);
+  const [nodeId, setNodeId] = useState<string>(REFLECTION_TREE.start);
   const [path, setPath] = useState<ReflectionPathEntry[]>([]);
 
   const node = useMemo(() => t.nodes[nodeId], [t, nodeId]);
   const isTerminal = node?.kind === "terminal";
+
+  // Swapping the tree out from under a half-finished reflection would change the
+  // questions between one answer and the next, so once the reader has started,
+  // a newer revision waits in `pendingTree` until the slate is clean again.
+  const hasStarted = useRef(false);
+  const pendingTree = useRef<PublishedTree | null>(null);
+
+  const adoptTree = useCallback((next: PublishedTree) => {
+    pendingTree.current = null;
+    setTree(next.tree);
+    setRevision(next.revision);
+    setNodeId(next.tree.start);
+  }, []);
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    fetch("/api/reflection/tree", { cache: "no-store", signal: controller.signal })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((payload: unknown) => {
+        if (!payload || typeof payload !== "object") return;
+
+        const published = payload as { revision?: unknown; tree?: unknown };
+        if (!isRenderableReflectionTree(published.tree)) return;
+
+        const next: PublishedTree = {
+          tree: published.tree,
+          revision:
+            typeof published.revision === "number" ? published.revision : BUNDLED_REFLECTION_REVISION
+        };
+
+        if (hasStarted.current) pendingTree.current = next;
+        else adoptTree(next);
+      })
+      .catch(() => {
+        // The bundled tree is already on screen and is a perfectly good answer.
+      });
+
+    return () => controller.abort();
+  }, [adoptTree]);
 
   useEffect(() => {
     publishCatPreview(catMessage ?? node?.question ?? null);
@@ -102,9 +151,17 @@ function ReflectPageContent() {
 
   function restart() {
     setCatMessage(null);
-    setNodeId(t.start);
     setPath([]);
+    hasStarted.current = false;
     rerollCat();
+
+    // A restart is the clean slate a newer revision was waiting for.
+    if (pendingTree.current) {
+      adoptTree(pendingTree.current);
+      return;
+    }
+
+    setNodeId(t.start);
   }
 
   function goBack() {
@@ -118,6 +175,8 @@ function ReflectPageContent() {
 
   function choose(a: ReflectionAnswer) {
     if (catMessage) return;
+
+    hasStarted.current = true;
 
     // The answer's tags travel with the step. They are what the session log is
     // derived from later, so they have to be captured against the tree as it
@@ -145,6 +204,7 @@ function ReflectPageContent() {
         focusArea: metadata.focusArea,
         nextFocus: metadata.nextFocus,
         treeVersion: t.version ?? REFLECTION_TREE_VERSION,
+        treeRevision: revision,
         reflectionPath: nextPath
       };
 

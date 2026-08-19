@@ -26,8 +26,10 @@ export type SessionLog = {
   outcome?: string;
   focusArea?: string;
   nextFocus?: string;
-  /** Version of the reflection tree this session was recorded against. */
+  /** Schema version of the reflection tree this session was recorded against. */
   treeVersion?: number;
+  /** Content revision of that tree. 0 means the copy bundled with the build. */
+  treeRevision?: number;
   reflectionPath: ReflectionPathEntry[];
 };
 
@@ -60,6 +62,7 @@ function normalizeSession(entry: StoredSessionLog): SessionLog {
     focusArea: entry.focusArea,
     nextFocus: entry.nextFocus ?? entry.craftFocus,
     treeVersion: entry.treeVersion,
+    treeRevision: entry.treeRevision,
     reflectionPath: Array.isArray(entry.reflectionPath) ? entry.reflectionPath : []
   };
 }

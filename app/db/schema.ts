@@ -1,3 +1,4 @@
+import type { ReflectionTree } from "../lib/reflectionTree";
 import {
   boolean,
   doublePrecision,
@@ -44,6 +45,11 @@ export const poseIdEnum = pgEnum("pose_id", [
 ]);
 
 export const assetViewEnum = pgEnum("asset_view", ["front", "threeQuarter"]);
+
+export const reflectionTreeStatusEnum = pgEnum("reflection_tree_status", [
+  "draft",
+  "published"
+]);
 
 export const cosmeticAssetPurposeEnum = pgEnum("cosmetic_asset_purpose", [
   "preview",
@@ -200,6 +206,31 @@ export const cosmeticPosePlacements = pgTable(
   ]
 );
 
+/**
+ * Revisions of the reflection tree, append-only. The live tree is the highest
+ * `revision` whose status is "published"; publishing never rewrites a prior row,
+ * and rolling back means publishing a copy of an older document as a new
+ * revision. That keeps every publish a single statement, which matters because
+ * the neon-http driver this app uses has no transactions.
+ */
+export const reflectionTreeRevisions = pgTable(
+  "reflection_tree_revisions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    revision: integer("revision").notNull(),
+    status: reflectionTreeStatusEnum("status").notNull().default("draft"),
+    label: text("label").notNull().default(""),
+    document: jsonb("document").$type<ReflectionTree>().notNull(),
+    updatedByEmail: text("updated_by_email"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    publishedAt: timestamp("published_at", { withTimezone: true })
+  },
+  (table) => [
+    uniqueIndex("reflection_tree_revisions_revision_idx").on(table.revision),
+    index("reflection_tree_revisions_status_revision_idx").on(table.status, table.revision)
+  ]
+);
+
 export const adminAuditLogs = pgTable(
   "admin_audit_logs",
   {
@@ -232,5 +263,7 @@ export type DonationPayment = typeof donationPayments.$inferSelect;
 export type NewDonationPayment = typeof donationPayments.$inferInsert;
 export type CosmeticPosePlacement = typeof cosmeticPosePlacements.$inferSelect;
 export type NewCosmeticPosePlacement = typeof cosmeticPosePlacements.$inferInsert;
+export type ReflectionTreeRevision = typeof reflectionTreeRevisions.$inferSelect;
+export type NewReflectionTreeRevision = typeof reflectionTreeRevisions.$inferInsert;
 export type AdminAuditLog = typeof adminAuditLogs.$inferSelect;
 export type NewAdminAuditLog = typeof adminAuditLogs.$inferInsert;

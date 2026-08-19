@@ -43,6 +43,13 @@
       "when": 1786236701698,
       "tag": "0005_dazzling_lilith",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1787121159042,
+      "tag": "0006_aspiring_maestro",
+      "breakpoints": true
     }
   ]
 }

@@ -47,6 +47,34 @@ The user-facing appearance catalog is database-backed. Accessible cosmetic asset
 and background themes are loaded from Postgres; private cosmetic PNGs are streamed through an
 access-checked same-origin route instead of exposing Blob credentials or private URLs.
 
+## Reflection tree
+
+The reflection flow at `/reflect` is driven by a tree of questions and answers. Each answer carries
+its own meaning as explicit tags -- `outcome`, `area`, `recordAs`, `action` -- and the session log is
+derived from those tags. Nothing may infer meaning from a node id or from answer text: both are
+editable content, and deriving from them silently breaks the stats page when the tree is edited.
+
+`app/data/reflectionTree.json` is the version 2 document compiled into the build. Editable revisions
+live in the `reflection_tree_revisions` table, which is append-only: the live tree is the highest
+`revision` whose status is `published`, publishing never rewrites a prior row, and rolling back means
+publishing a copy of an older document as a new revision.
+
+`GET /api/reflection/tree` serves the published revision and always answers 200. An unreachable
+database, an empty table, or a stored document that no longer validates all fall back to the bundled
+tree, so a writer finishing a session never meets an error. The reflect page renders the bundled tree
+immediately and swaps in the published revision behind it, never mid-reflection.
+
+Run the migration, then seed the table from the bundled file:
+
+```bash
+npm run db:migrate
+npm run reflection:seed -- --apply
+```
+
+Seeding is idempotent and does nothing once any revision exists. Until it runs, the app serves the
+bundled tree. `npm run reflection:migrate` converts a version 1 tree file to version 2; it is spent,
+and exits early on an already-migrated file.
+
 ## Admin asset uploads
 
 Connect a Vercel Blob store to the project and enable access to System Environment Variables for

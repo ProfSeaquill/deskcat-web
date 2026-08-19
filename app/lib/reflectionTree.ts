@@ -2,6 +2,9 @@ import treeData from "../data/reflectionTree.json";
 
 export const REFLECTION_TREE_VERSION = 2;
 
+/** Content revision reported for the tree compiled into the build. */
+export const BUNDLED_REFLECTION_REVISION = 0;
+
 export const REFLECTION_OUTCOMES = ["overallPositive", "overallMixed", "overallNegative"] as const;
 export const REFLECTION_AREAS = ["productivity", "mechanics", "creativity"] as const;
 export const REFLECTION_RECORD_SLOTS = ["nextFocus"] as const;
@@ -48,6 +51,20 @@ export type ReflectionTree = {
 };
 
 export const REFLECTION_TREE = treeData as ReflectionTree;
+
+/**
+ * Cheap structural check for a tree arriving over the network. The server has
+ * already run the full validation; this only guards the render.
+ */
+export function isRenderableReflectionTree(value: unknown): value is ReflectionTree {
+  if (!value || typeof value !== "object") return false;
+
+  const tree = value as Partial<ReflectionTree>;
+  if (typeof tree.start !== "string" || !tree.nodes || typeof tree.nodes !== "object") return false;
+
+  const startNode = tree.nodes[tree.start];
+  return Boolean(startNode && Array.isArray(startNode.answers) && startNode.answers.length > 0);
+}
 
 export type ReflectionTreeReport = {
   errors: string[];
