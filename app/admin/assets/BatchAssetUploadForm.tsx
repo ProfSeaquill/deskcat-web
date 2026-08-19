@@ -7,6 +7,7 @@ import {
   type DeskCatCosmeticCategory
 } from "../../lib/deskcatSprite";
 import type { DeskCatAnchorSlotId, DeskCatPoseId } from "../../lib/deskcatAnchors";
+import { ASSET_VIEW_LABELS, parseAssetFileName } from "../../lib/cosmeticAssetVariants";
 
 const MAX_UPLOAD_BYTES = 4 * 1024 * 1024;
 const MAX_BATCH_SIZE = 20;
@@ -54,15 +55,6 @@ function slugifyCosmeticName(value: string) {
     .slice(0, 80);
 }
 
-function getNameFromFile(fileName: string) {
-  const withoutExtension = fileName.replace(/\.[^.]+$/, "");
-  return withoutExtension
-    .replace(/[_-]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .replace(/\b\w/g, (letter) => letter.toUpperCase());
-}
-
 function anchorForCategory(category: DeskCatCosmeticCategory): DeskCatAnchorSlotId {
   switch (category) {
     case "glasses":
@@ -107,6 +99,22 @@ export default function BatchAssetUploadForm() {
     );
   }
 
+  // Rows sharing a cosmetic ID are variants of one cosmetic, and the upload API
+  // rejects a batch whose variants disagree on the cosmetic-level fields, so
+  // edits to those fields carry across the whole group.
+  function updateCosmeticGroup(rowId: string, update: Partial<BatchUploadRow>) {
+    setRows((current) => {
+      const target = current.find((row) => row.rowId === rowId);
+      if (!target) return current;
+
+      return current.map((row) => {
+        if (row.rowId === rowId) return { ...row, ...update };
+        if (row.cosmeticId !== target.cosmeticId || row.status === "saved") return row;
+        return { ...row, ...update, status: "ready", message: "" };
+      });
+    });
+  }
+
   function handleFiles(files: FileList | null) {
     setMessage("");
     setMessageIsError(false);
@@ -117,12 +125,16 @@ export default function BatchAssetUploadForm() {
     }
 
     const selectedFiles = Array.from(files).slice(0, MAX_BATCH_SIZE);
-    const slugCounts = new Map<string, number>();
-    const nextRows = selectedFiles.map((file, index) => {
-      const cosmeticName = getNameFromFile(file.name) || `Cosmetic ${index + 1}`;
+    // Front and 3/4 files of the same cosmetic share one ID on purpose, so the
+    // duplicate counter keys on the view too and only bumps genuine clashes.
+    const variantCounts = new Map<string, number>();
+    const nextRows = selectedFiles.map((file, index): BatchUploadRow => {
+      const parsed = parseAssetFileName(file.name);
+      const cosmeticName = parsed.baseName || `Cosmetic ${index + 1}`;
       const baseSlug = slugifyCosmeticName(cosmeticName) || `cosmetic-${index + 1}`;
-      const count = (slugCounts.get(baseSlug) ?? 0) + 1;
-      slugCounts.set(baseSlug, count);
+      const variantKey = `${baseSlug}:${parsed.assetView}`;
+      const count = (variantCounts.get(variantKey) ?? 0) + 1;
+      variantCounts.set(variantKey, count);
       const suffix = count > 1 ? `-${count}` : "";
       const cosmeticId = `${baseSlug.slice(0, 80 - suffix.length)}${suffix}`;
       const isValidPng = file.type === "image/png" && file.size > 0 && file.size <= MAX_UPLOAD_BYTES;
@@ -132,16 +144,23 @@ export default function BatchAssetUploadForm() {
         file,
         cosmeticName,
         cosmeticId,
-        category: "head" as const,
-        anchorSlot: "head" as const,
-        purpose: "render" as const,
-        assetView: "" as const,
-        poseId: "" as const,
-        accessible: "true" as const,
-        status: isValidPng ? ("ready" as const) : ("error" as const),
+        category: "head",
+        anchorSlot: "head",
+        purpose: "render",
+        assetView: parsed.assetView,
+        poseId: "",
+        accessible: "true",
+        status: isValidPng ? "ready" : "error",
         message: isValidPng ? "" : "Use a PNG file no larger than 4 MB."
       };
     });
+
+    // Keep variants of one cosmetic adjacent so the grouping is obvious.
+    nextRows.sort(
+      (left, right) =>
+        left.cosmeticId.localeCompare(right.cosmeticId) ||
+        left.assetView.localeCompare(right.assetView)
+    );
 
     setRows(nextRows);
 
@@ -235,13 +254,21 @@ export default function BatchAssetUploadForm() {
     }
   }
 
+  const variantCountByCosmeticId = rows.reduce((counts, row) => {
+    counts.set(row.cosmeticId, (counts.get(row.cosmeticId) ?? 0) + 1);
+    return counts;
+  }, new Map<string, number>());
+
   return (
     <section className="theme-surface rounded-[28px] border p-6 backdrop-blur">
       <h2 className="theme-text-primary text-2xl font-semibold">Batch Upload</h2>
       <p className="theme-text-secondary mt-2 text-sm">
         Select up to {MAX_BATCH_SIZE} PNGs. Each file becomes a row so you can set every asset spec,
-        then save the whole batch with one click. Give related preview, view, or pose rows the same
-        cosmetic ID to attach all of those image variants to one cosmetic.
+        then save the whole batch with one click. Filenames ending in a view suffix (
+        <code>_front</code>, <code>_3:4</code>, <code>_three-quarter</code>) are read as variants of
+        one cosmetic: <code>red_bowtie_front.png</code> and <code>red_bowtie_3:4.png</code> both land
+        on <code>red-bowtie</code>. Rows sharing a cosmetic ID keep their name, category, and anchor
+        in sync.
       </p>
 
       <label className="theme-text-secondary mt-5 block text-sm font-medium">
@@ -286,6 +313,7 @@ export default function BatchAssetUploadForm() {
                         </div>
                         <div className="theme-text-tertiary mt-1 text-xs">
                           {formatFileSize(row.file.size)}
+                          {row.assetView ? ` · ${ASSET_VIEW_LABELS[row.assetView]} detected` : ""}
                         </div>
                       </td>
                       <td className="border-y px-2 py-3">
@@ -295,7 +323,7 @@ export default function BatchAssetUploadForm() {
                           disabled={isLocked}
                           aria-label={`Name for ${row.file.name}`}
                           onChange={(event) =>
-                            updateRow(row.rowId, {
+                            updateCosmeticGroup(row.rowId, {
                               cosmeticName: event.currentTarget.value,
                               status: "ready",
                               message: ""
@@ -320,6 +348,11 @@ export default function BatchAssetUploadForm() {
                           }
                           className="theme-input min-w-[160px] rounded-xl border px-3 py-2"
                         />
+                        {(variantCountByCosmeticId.get(row.cosmeticId) ?? 0) > 1 && (
+                          <div className="theme-text-tertiary mt-1 text-xs">
+                            {variantCountByCosmeticId.get(row.cosmeticId)} variants of this cosmetic
+                          </div>
+                        )}
                       </td>
                       <td className="border-y px-2 py-3">
                         <select
@@ -328,7 +361,7 @@ export default function BatchAssetUploadForm() {
                           aria-label={`Category for ${row.file.name}`}
                           onChange={(event) => {
                             const category = event.currentTarget.value as DeskCatCosmeticCategory;
-                            updateRow(row.rowId, {
+                            updateCosmeticGroup(row.rowId, {
                               category,
                               anchorSlot: anchorForCategory(category),
                               status: "ready",
@@ -350,7 +383,7 @@ export default function BatchAssetUploadForm() {
                           disabled={isLocked}
                           aria-label={`Anchor for ${row.file.name}`}
                           onChange={(event) =>
-                            updateRow(row.rowId, {
+                            updateCosmeticGroup(row.rowId, {
                               anchorSlot: event.currentTarget.value as DeskCatAnchorSlotId,
                               status: "ready",
                               message: ""

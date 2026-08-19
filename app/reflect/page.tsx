@@ -5,9 +5,13 @@ import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import CatStage from "../components/CatStage";
 import PageBackLink from "../components/PageBackLink";
-import tree from "../data/reflectionTree.json";
 import { getCatReaction } from "../lib/cat";
-import { deriveReflectionMetadata, getAreaDescriptionForLabel } from "../lib/reflection";
+import { deriveReflectionMetadata } from "../lib/reflection";
+import {
+  REFLECTION_TREE,
+  REFLECTION_TREE_VERSION,
+  type ReflectionAnswer
+} from "../lib/reflectionTree";
 import {
   computeStreaks,
   loadSessions,
@@ -16,14 +20,6 @@ import {
   type ReflectionPathEntry,
   type SessionLog
 } from "../lib/storage";
-
-type Answer = { label: string; next: string | null };
-type Node = { id: string; question: string; answers: Answer[] };
-
-type Tree = {
-  start: string;
-  nodes: Record<string, Node>;
-};
 
 function publishCatPreview(message: string | null) {
   if (typeof window === "undefined") return;
@@ -83,7 +79,7 @@ export default function ReflectPage() {
 }
 
 function ReflectPageContent() {
-  const t = tree as unknown as Tree;
+  const t = REFLECTION_TREE;
 
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -94,7 +90,7 @@ function ReflectPageContent() {
   const [path, setPath] = useState<ReflectionPathEntry[]>([]);
 
   const node = useMemo(() => t.nodes[nodeId], [t, nodeId]);
-  const isEnd = nodeId === "end";
+  const isTerminal = node?.kind === "terminal";
 
   useEffect(() => {
     publishCatPreview(catMessage ?? node?.question ?? null);
@@ -120,45 +116,59 @@ function ReflectPageContent() {
     rerollCat();
   }
 
-  function choose(a: Answer) {
+  function choose(a: ReflectionAnswer) {
     if (catMessage) return;
 
-    const nextPath = [...path, { nodeId, answer: a.label, nextNodeId: a.next }];
+    // The answer's tags travel with the step. They are what the session log is
+    // derived from later, so they have to be captured against the tree as it
+    // was when the reader answered.
+    const nextPath = [
+      ...path,
+      {
+        nodeId,
+        answer: a.label,
+        nextNodeId: a.next,
+        outcome: a.outcome,
+        area: a.area,
+        recordAs: a.recordAs
+      }
+    ];
     setPath(nextPath);
 
-    if (isEnd) {
-      if (a.label === "Save") {
-        const metadata = deriveReflectionMetadata(nextPath);
-        const entry: SessionLog = {
-          id: crypto.randomUUID(),
-          createdAt: new Date().toISOString(),
-          sessionType,
-          outcome: metadata.outcome,
-          focusArea: metadata.focusArea,
-          nextFocus: metadata.nextFocus,
-          reflectionPath: nextPath
-        };
+    if (a.action === "save") {
+      const metadata = deriveReflectionMetadata(nextPath);
+      const entry: SessionLog = {
+        id: crypto.randomUUID(),
+        createdAt: new Date().toISOString(),
+        sessionType,
+        outcome: metadata.outcome,
+        focusArea: metadata.focusArea,
+        nextFocus: metadata.nextFocus,
+        treeVersion: t.version ?? REFLECTION_TREE_VERSION,
+        reflectionPath: nextPath
+      };
 
-        saveSession(entry);
+      saveSession(entry);
 
-        const sessionsNow = loadSessions();
-        const streak = computeStreaks(sessionsNow);
+      const sessionsNow = loadSessions();
+      const streak = computeStreaks(sessionsNow);
 
-        const msg = getCatReaction(entry.outcome ?? "unknown", streak.currentStreak);
-        setCatMessage(msg);
-        publishCatPreview(msg);
+      const msg = getCatReaction(entry.outcome ?? "unknown", streak.currentStreak);
+      setCatMessage(msg);
+      publishCatPreview(msg);
 
-        saveLastReaction({
-          createdAt: new Date().toISOString(),
-          message: msg,
-          outcome: entry.outcome,
-          sessionType: entry.sessionType
-        });
+      saveLastReaction({
+        createdAt: new Date().toISOString(),
+        message: msg,
+        outcome: entry.outcome,
+        sessionType: entry.sessionType
+      });
 
-        setTimeout(() => router.push("/"), 1200);
-        return;
-      }
+      setTimeout(() => router.push("/"), 1200);
+      return;
+    }
 
+    if (a.action === "discard") {
       router.push("/");
       return;
     }
@@ -212,16 +222,14 @@ function ReflectPageContent() {
                 onClick={() => choose(a)}
               >
                 <span className="block font-medium">{a.label}</span>
-                {getAreaDescriptionForLabel(a.label) && (
-                  <span className="theme-text-secondary mt-1 block text-sm">
-                    {getAreaDescriptionForLabel(a.label)}
-                  </span>
+                {a.description && (
+                  <span className="theme-text-secondary mt-1 block text-sm">{a.description}</span>
                 )}
               </button>
             ))}
           </div>
 
-          {isEnd && !catMessage && (
+          {isTerminal && !catMessage && (
             <p className="theme-text-secondary text-sm">Click Save to log this session.</p>
           )}
         </div>

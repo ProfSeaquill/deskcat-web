@@ -10,6 +10,14 @@ import {
   cosmetics
 } from "../../db/schema";
 import { requireAdmin } from "../../lib/admin";
+import type { DeskCatAnchorSlotId, DeskCatPoseId } from "../../lib/deskcatAnchors";
+import {
+  ASSET_VIEW_LABELS,
+  POSE_LABELS,
+  formatPoseList,
+  groupPosesByAssetView
+} from "../../lib/cosmeticAssetVariants";
+import AssetGroupTable, { type AssetGroupRow } from "./AssetGroupTable";
 import AssetUploadForm from "./AssetUploadForm";
 import BatchAssetUploadForm from "./BatchAssetUploadForm";
 import BatchBackgroundUploadForm from "./BatchBackgroundUploadForm";
@@ -22,9 +30,10 @@ type ExistingAsset = {
   cosmeticId: string;
   label: string;
   category: string;
+  anchorSlot: DeskCatAnchorSlotId;
   purpose: string;
-  assetView: string | null;
-  poseId: string | null;
+  assetView: "front" | "threeQuarter" | null;
+  poseId: DeskCatPoseId | null;
   storageKey: string;
   url: string;
   sizeLabel: string;
@@ -58,13 +67,14 @@ async function loadAssets() {
           asset: cosmeticAssets,
           cosmetic: {
             label: cosmetics.label,
-            category: cosmetics.category
+            category: cosmetics.category,
+            anchorSlot: cosmetics.anchorSlot
           }
         })
         .from(cosmeticAssets)
         .innerJoin(cosmetics, eq(cosmeticAssets.cosmeticId, cosmetics.id))
-        .orderBy(desc(cosmeticAssets.createdAt))
-        .limit(100),
+        .orderBy(cosmetics.label, cosmetics.id, desc(cosmeticAssets.createdAt))
+        .limit(300),
       db
         .select()
         .from(appearanceBackgrounds)
@@ -288,6 +298,144 @@ async function saveAssetChanges(formData: FormData) {
   revalidatePath("/admin/assets");
 }
 
+const SPLIT_VARIANT_ID_PATTERN = /-(?:3-4|34|three-quarter|threequarter|front)$/;
+
+/**
+ * Turns the flat asset rows into one entry per cosmetic, so a 3/4 file reads as
+ * a variant of its cosmetic rather than an asset of its own, and labels each
+ * variant with the poses that actually draw it.
+ */
+function buildAssetGroups(assets: ExistingAsset[]): AssetGroupRow[] {
+  const byCosmeticId = new Map<string, ExistingAsset[]>();
+
+  for (const asset of assets) {
+    const existing = byCosmeticId.get(asset.cosmeticId);
+    if (existing) existing.push(asset);
+    else byCosmeticId.set(asset.cosmeticId, [asset]);
+  }
+
+  return Array.from(byCosmeticId.values()).map((cosmeticAssetRows) => {
+    const [first] = cosmeticAssetRows;
+    const posesByView = groupPosesByAssetView(first.cosmeticId, first.anchorSlot);
+    const renderRows = cosmeticAssetRows.filter((asset) => asset.purpose === "render");
+    const posesWithOwnAsset = new Set(
+      renderRows.flatMap((asset) => (asset.poseId ? [asset.poseId] : []))
+    );
+    const viewRows = renderRows.filter((asset) => asset.assetView && !asset.poseId);
+    const defaultRow = renderRows.find((asset) => !asset.assetView && !asset.poseId);
+
+    // Poses a view still owns once pose-specific overrides are taken out.
+    const remainingPoses = (view: "front" | "threeQuarter") =>
+      posesByView[view].filter((poseId) => !posesWithOwnAsset.has(poseId));
+
+    const variants = [...cosmeticAssetRows]
+      .sort((left, right) => variantSortKey(left) - variantSortKey(right))
+      .map((asset) => {
+        const variantLabel =
+          asset.purpose === "preview"
+            ? "Preview"
+            : asset.poseId
+              ? `Pose override: ${POSE_LABELS[asset.poseId]}`
+              : asset.assetView
+                ? `${ASSET_VIEW_LABELS[asset.assetView]} render`
+                : "Default render (any view)";
+
+        const usedByPoses =
+          asset.purpose === "preview"
+            ? ""
+            : asset.poseId
+              ? POSE_LABELS[asset.poseId]
+              : asset.assetView
+                ? formatPoseList(remainingPoses(asset.assetView))
+                : formatPoseList(
+                    (["front", "threeQuarter"] as const)
+                      .filter((view) => !viewRows.some((row) => row.assetView === view))
+                      .flatMap((view) => remainingPoses(view))
+                  );
+
+        return {
+          id: asset.id,
+          variantLabel,
+          isPrimaryView: asset.purpose === "render",
+          storageKey: asset.storageKey,
+          url: asset.url,
+          sizeLabel: asset.sizeLabel,
+          accessible: asset.accessible,
+          usedByPoses
+        };
+      });
+
+    return {
+      cosmeticId: first.cosmeticId,
+      label: first.label,
+      category: first.category,
+      anchorSlot: first.anchorSlot,
+      variants,
+      warnings: buildGroupWarnings({
+        cosmeticId: first.cosmeticId,
+        renderRows,
+        viewRows,
+        hasDefaultRender: Boolean(defaultRow),
+        remainingPoses
+      })
+    };
+  });
+}
+
+function variantSortKey(asset: ExistingAsset) {
+  if (asset.purpose === "preview") return 0;
+  if (asset.poseId) return 4;
+  if (asset.assetView === "front") return 1;
+  if (asset.assetView === "threeQuarter") return 2;
+  return 3;
+}
+
+function buildGroupWarnings({
+  cosmeticId,
+  renderRows,
+  viewRows,
+  hasDefaultRender,
+  remainingPoses
+}: {
+  cosmeticId: string;
+  renderRows: ExistingAsset[];
+  viewRows: ExistingAsset[];
+  hasDefaultRender: boolean;
+  remainingPoses: (view: "front" | "threeQuarter") => DeskCatPoseId[];
+}) {
+  const warnings: string[] = [];
+
+  if (renderRows.length === 0) {
+    warnings.push("No render asset uploaded, so this cosmetic is left out of the public catalog.");
+  }
+
+  for (const view of ["front", "threeQuarter"] as const) {
+    const poses = remainingPoses(view);
+    const hasView = viewRows.some((row) => row.assetView === view);
+    const hasOtherView = viewRows.some((row) => row.assetView && row.assetView !== view);
+
+    if (poses.length > 0 && !hasView && !hasDefaultRender && hasOtherView) {
+      warnings.push(
+        `${formatPoseList(poses)} ${poses.length === 1 ? "uses" : "use"} the ${ASSET_VIEW_LABELS[view]} variant, but no ${ASSET_VIEW_LABELS[view]} asset is uploaded — those poses silently fall back to the other view.`
+      );
+    }
+
+    if (poses.length === 0 && hasView) {
+      warnings.push(
+        `The ${ASSET_VIEW_LABELS[view]} variant is not used by any pose. Check the anchor data if that is unexpected.`
+      );
+    }
+  }
+
+  if (SPLIT_VARIANT_ID_PATTERN.test(cosmeticId)) {
+    warnings.push(
+      "This ID looks like a view variant that was uploaded as its own cosmetic. Run `npm run assets:merge-variants` to fold it into the base cosmetic."
+    );
+  }
+
+  return warnings;
+}
+
 export default async function AdminAssetsPage() {
   await requireAdmin();
   const { assets, backgrounds, error } = await loadAssets();
@@ -296,6 +444,7 @@ export default async function AdminAssetsPage() {
     cosmeticId: asset.cosmeticId,
     label: cosmetic.label,
     category: cosmetic.category,
+    anchorSlot: cosmetic.anchorSlot,
     purpose: asset.purpose,
     assetView: asset.assetView,
     poseId: asset.poseId,
@@ -304,6 +453,7 @@ export default async function AdminAssetsPage() {
     sizeLabel: `${asset.width} x ${asset.height} · ${Math.round(asset.byteSize / 1024)} KB`,
     accessible: asset.accessible
   }));
+  const assetGroups = buildAssetGroups(existingAssets);
 
   return (
     <main className="min-h-screen px-6 py-10">
@@ -354,11 +504,17 @@ export default async function AdminAssetsPage() {
             <div>
               <h2 className="theme-text-primary text-2xl font-semibold">Existing Assets</h2>
               <p className="theme-text-secondary mt-2 text-sm">
-                Only uploaded, database-managed assets appear here. The former built-in entries are
-                backed up under <code>deskcat-assets/built-in-archive</code> in the project folder.
+                Assets are grouped by the cosmetic they belong to. The 3/4 file is a view variant of
+                its cosmetic, not a cosmetic of its own — &ldquo;Used by poses&rdquo; shows which
+                poses draw each variant, read from the pose anchor data. The former built-in entries
+                are backed up under <code>deskcat-assets/built-in-archive</code> in the project
+                folder.
               </p>
             </div>
-            <span className="theme-text-tertiary text-sm">{existingAssets.length} assets</span>
+            <span className="theme-text-tertiary text-sm">
+              {assetGroups.length} cosmetic{assetGroups.length === 1 ? "" : "s"} ·{" "}
+              {existingAssets.length} assets
+            </span>
           </div>
 
           {error ? (
@@ -369,7 +525,7 @@ export default async function AdminAssetsPage() {
             <p className="theme-text-secondary mt-5 text-sm">No assets have been uploaded yet.</p>
           ) : (
             <form action={saveAssetChanges} className="mt-5 space-y-8">
-              <AssetTable title="Uploaded assets" assets={existingAssets} />
+              <AssetGroupTable groups={assetGroups} />
               <button
                 type="submit"
                 className="theme-button-primary theme-hover-highlight inline-flex items-center justify-center rounded-2xl border px-5 py-3 font-semibold transition"
@@ -544,98 +700,5 @@ function BackgroundTable({
         </form>
       )}
     </section>
-  );
-}
-
-function AssetTable({
-  title,
-  assets
-}: {
-  title: string;
-  assets: ExistingAsset[];
-}) {
-  return (
-    <details className="theme-subsurface rounded-2xl border p-4">
-      <summary className="theme-hover-highlight flex cursor-pointer list-none items-center justify-between gap-3 rounded-xl px-2 py-2">
-        <h3 className="theme-text-primary text-lg font-semibold">{title}</h3>
-        <span className="theme-text-tertiary text-sm">{assets.length} assets</span>
-      </summary>
-
-      {assets.length === 0 ? (
-        <p className="theme-text-secondary mt-3 text-sm">No assets in this category.</p>
-      ) : (
-        <div className="mt-3 overflow-x-auto">
-          <table className="w-full min-w-[1080px] border-separate border-spacing-y-3 text-left text-sm">
-            <thead className="theme-text-tertiary">
-              <tr>
-                <th className="px-3 py-2 font-semibold">Asset</th>
-                <th className="px-3 py-2 font-semibold">Category</th>
-                <th className="px-3 py-2 font-semibold">Purpose</th>
-                <th className="px-3 py-2 font-semibold">View</th>
-                <th className="px-3 py-2 font-semibold">Pose</th>
-                <th className="px-3 py-2 font-semibold">Size</th>
-                <th className="px-3 py-2 font-semibold">App access</th>
-                <th className="px-3 py-2 font-semibold">Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {assets.map((asset) => (
-                <tr key={asset.id} className="theme-subsurface">
-                  <td className="rounded-l-2xl border-y border-l px-3 py-3">
-                    <div className="theme-text-primary font-semibold">{asset.label}</div>
-                    <div className="theme-text-tertiary mt-1 text-xs">
-                      {asset.cosmeticId} · uploaded
-                    </div>
-                    {asset.url ? (
-                      <a
-                        href={asset.url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="theme-link mt-1 block max-w-[260px] truncate text-xs"
-                      >
-                        {asset.storageKey}
-                      </a>
-                    ) : (
-                      <div className="theme-text-tertiary mt-1 max-w-[260px] truncate text-xs">
-                        {asset.storageKey}
-                      </div>
-                    )}
-                  </td>
-                  <td className="border-y px-3 py-3 capitalize">{asset.category}</td>
-                  <td className="border-y px-3 py-3 capitalize">{asset.purpose}</td>
-                  <td className="border-y px-3 py-3">
-                    {asset.assetView === "threeQuarter" ? "3/4" : asset.assetView ?? "Default"}
-                  </td>
-                  <td className="border-y px-3 py-3 capitalize">{asset.poseId ?? "All"}</td>
-                  <td className="border-y px-3 py-3">{asset.sizeLabel}</td>
-                  <td className="border-y px-3 py-3">
-                    <input type="hidden" name="assetId" value={asset.id} />
-                    <input type="hidden" name={`assetSource:${asset.id}`} value="database" />
-                    <select
-                      name={`accessible:${asset.id}`}
-                      defaultValue={asset.accessible ? "true" : "false"}
-                      className="theme-input w-full min-w-[150px] rounded-xl border px-3 py-2"
-                    >
-                      <option value="true">Accessible</option>
-                      <option value="false">Hidden</option>
-                    </select>
-                  </td>
-                  <td className="rounded-r-2xl border-y border-r px-3 py-3">
-                    <label className="theme-text-secondary flex items-center gap-2 text-sm">
-                      <input
-                        type="checkbox"
-                        name={`delete:${asset.id}`}
-                        className="h-4 w-4 accent-red-400"
-                      />
-                      Delete
-                    </label>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </details>
   );
 }

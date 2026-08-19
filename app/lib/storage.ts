@@ -1,7 +1,21 @@
+import type {
+  ReflectionArea,
+  ReflectionOutcome,
+  ReflectionRecordSlot
+} from "./reflectionTree";
+
+/**
+ * The tags are copied from the chosen answer when the step is taken, not looked
+ * up later: the tree is editable, so a session has to carry the meaning it was
+ * recorded under.
+ */
 export type ReflectionPathEntry = {
   nodeId: string;
   answer: string;
   nextNodeId?: string | null;
+  outcome?: ReflectionOutcome;
+  area?: ReflectionArea;
+  recordAs?: ReflectionRecordSlot;
 };
 
 export type SessionLog = {
@@ -12,6 +26,8 @@ export type SessionLog = {
   outcome?: string;
   focusArea?: string;
   nextFocus?: string;
+  /** Version of the reflection tree this session was recorded against. */
+  treeVersion?: number;
   reflectionPath: ReflectionPathEntry[];
 };
 
@@ -43,6 +59,7 @@ function normalizeSession(entry: StoredSessionLog): SessionLog {
     outcome: normalizeOutcome(entry.outcome),
     focusArea: entry.focusArea,
     nextFocus: entry.nextFocus ?? entry.craftFocus,
+    treeVersion: entry.treeVersion,
     reflectionPath: Array.isArray(entry.reflectionPath) ? entry.reflectionPath : []
   };
 }

@@ -9,7 +9,9 @@
     "lint": "eslint",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "assets:merge-variants": "node scripts/merge-asset-variants.mjs",
+    "reflection:migrate": "node scripts/migrate-reflection-tree.mjs"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.1.0",
