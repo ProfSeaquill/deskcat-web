@@ -223,6 +223,7 @@ export const reflectionTreeRevisions = pgTable(
     document: jsonb("document").$type<ReflectionTree>().notNull(),
     updatedByEmail: text("updated_by_email"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
     publishedAt: timestamp("published_at", { withTimezone: true })
   },
   (table) => [

@@ -3,8 +3,10 @@ import { requireAdmin } from "../../lib/admin";
 import { validateReflectionTree } from "../../lib/reflectionTree";
 import {
   loadPublishedReflectionTree,
+  loadReflectionTreeDraft,
   loadReflectionTreeRevisions
 } from "../../lib/reflectionTree.server";
+import ReflectionTreeEditor from "./ReflectionTreeEditor";
 
 export const dynamic = "force-dynamic";
 
@@ -22,8 +24,12 @@ export default async function AdminReflectionsPage() {
   await requireAdmin();
 
   const published = await loadPublishedReflectionTree();
+  const draft = await loadReflectionTreeDraft();
   const revisions = await loadReflectionTreeRevisions();
   const report = validateReflectionTree(published.tree);
+
+  // The draft is what you edit when one exists; otherwise you start from what is live.
+  const editingDocument = draft?.document ?? published.tree;
 
   const nodes = Object.values(published.tree.nodes);
   const answerCount = nodes.reduce((total, node) => total + node.answers.length, 0);
@@ -61,7 +67,7 @@ export default async function AdminReflectionsPage() {
           </div>
         </header>
 
-        <section className="grid gap-4 md:grid-cols-3">
+        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <StatusCard
             label="Serving"
             value={published.source === "database" ? `Revision ${published.revision}` : "Bundled tree"}
@@ -75,6 +81,11 @@ export default async function AdminReflectionsPage() {
             label="Tree"
             value={`${nodes.length} nodes`}
             detail={`${answerCount} answers, ${taggedCount} carrying tags`}
+          />
+          <StatusCard
+            label="Draft"
+            value={draft ? "Open" : "None"}
+            detail={draft ? `Saved ${formatTime(draft.updatedAt)}` : "Editing starts from what is live"}
           />
           <StatusCard
             label="Validation"
@@ -125,7 +136,11 @@ export default async function AdminReflectionsPage() {
                     <span className="theme-text-primary font-semibold">{revision.revision}</span>
                     <span className="theme-text-secondary">{revision.status}</span>
                     <span className="theme-text-secondary">{revision.label || "—"}</span>
-                    <span className="theme-text-secondary">{formatTime(revision.publishedAt)}</span>
+                    <span className="theme-text-secondary">
+                      {revision.status === "draft"
+                        ? `Draft, saved ${formatTime(revision.updatedAt)}`
+                        : formatTime(revision.publishedAt)}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -139,14 +154,12 @@ export default async function AdminReflectionsPage() {
           )}
         </section>
 
-        <section className="theme-surface rounded-[28px] border p-6 backdrop-blur">
-          <h2 className="theme-text-primary text-2xl font-semibold">Editing</h2>
-          <p className="theme-text-secondary mt-2 text-sm">
-            The editor is not built yet. It will offer a node outline, an inspector for each question
-            and its answers, validation before publishing, and a playtest that shows what a run through
-            the draft would record.
-          </p>
-        </section>
+        <ReflectionTreeEditor
+          initialDocument={editingDocument}
+          initialLabel={draft?.label ?? ""}
+          hasDraft={Boolean(draft)}
+          hasRevisions={revisions.length > 0}
+        />
       </div>
     </main>
   );

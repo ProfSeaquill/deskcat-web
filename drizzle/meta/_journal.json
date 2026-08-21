@@ -50,6 +50,13 @@
       "when": 1787121159042,
       "tag": "0006_aspiring_maestro",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1787347786340,
+      "tag": "0007_outgoing_tinkerer",
+      "breakpoints": true
     }
   ]
 }
