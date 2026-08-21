@@ -375,6 +375,18 @@ export default async function AdminPage() {
             >
               Manage assets
             </Link>
+            <Link
+              href="/admin/reflections"
+              className="theme-button-secondary theme-hover-highlight inline-flex items-center justify-center rounded-2xl border px-5 py-3 font-semibold transition"
+            >
+              Edit reflections
+            </Link>
+            <Link
+              href="/admin/sources"
+              className="theme-button-secondary theme-hover-highlight inline-flex items-center justify-center rounded-2xl border px-5 py-3 font-semibold transition"
+            >
+              Sources
+            </Link>
           </div>
         </section>
       </div>
