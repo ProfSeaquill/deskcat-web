@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { requireAdmin } from "../../lib/admin";
-import { validateReflectionTree } from "../../lib/reflectionTree";
 import {
   loadPublishedReflectionTree,
   loadReflectionTreeDraft,
@@ -26,7 +25,6 @@ export default async function AdminReflectionsPage() {
   const published = await loadPublishedReflectionTree();
   const draft = await loadReflectionTreeDraft();
   const revisions = await loadReflectionTreeRevisions();
-  const report = validateReflectionTree(published.tree);
 
   // The draft is what you edit when one exists; otherwise you start from what is live.
   const editingDocument = draft?.document ?? published.tree;
@@ -67,7 +65,7 @@ export default async function AdminReflectionsPage() {
           </div>
         </header>
 
-        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <section className="grid gap-4 md:grid-cols-3">
           <StatusCard
             label="Serving"
             value={published.source === "database" ? `Revision ${published.revision}` : "Bundled tree"}
@@ -87,34 +85,14 @@ export default async function AdminReflectionsPage() {
             value={draft ? "Open" : "None"}
             detail={draft ? `Saved ${formatTime(draft.updatedAt)}` : "Editing starts from what is live"}
           />
-          <StatusCard
-            label="Validation"
-            value={report.errors.length > 0 ? `${report.errors.length} errors` : "Passing"}
-            detail={
-              report.warnings.length > 0
-                ? `${report.warnings.length} warning${report.warnings.length === 1 ? "" : "s"}`
-                : "No warnings"
-            }
-          />
         </section>
 
-        {(report.errors.length > 0 || report.warnings.length > 0) && (
-          <section className="theme-surface rounded-[28px] border p-6 backdrop-blur">
-            <h2 className="theme-text-primary text-2xl font-semibold">Validation</h2>
-            <ul className="mt-4 space-y-2 text-sm">
-              {report.errors.map((message) => (
-                <li key={message} className="theme-text-primary font-medium">
-                  Error: {message}
-                </li>
-              ))}
-              {report.warnings.map((message) => (
-                <li key={message} className="theme-text-secondary">
-                  Warning: {message}
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
+        <ReflectionTreeEditor
+          initialDocument={editingDocument}
+          initialLabel={draft?.label ?? ""}
+          hasDraft={Boolean(draft)}
+          hasRevisions={revisions.length > 0}
+        />
 
         <section className="theme-surface rounded-[28px] border p-6 backdrop-blur">
           <h2 className="theme-text-primary text-2xl font-semibold">Revisions</h2>
@@ -154,12 +132,6 @@ export default async function AdminReflectionsPage() {
           )}
         </section>
 
-        <ReflectionTreeEditor
-          initialDocument={editingDocument}
-          initialLabel={draft?.label ?? ""}
-          hasDraft={Boolean(draft)}
-          hasRevisions={revisions.length > 0}
-        />
       </div>
     </main>
   );
