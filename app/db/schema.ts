@@ -1,3 +1,4 @@
+import type { DeskCatAnchorDocument } from "../lib/deskcatAnchors";
 import type { ReflectionTree } from "../lib/reflectionTree";
 import {
   boolean,
@@ -232,6 +233,19 @@ export const reflectionTreeRevisions = pgTable(
   ]
 );
 
+/**
+ * The live DeskCat anchor layout. This is a singleton row (id = "current") so
+ * the production editor can publish without trying to mutate Vercel's
+ * read-only deployment filesystem.
+ */
+export const deskcatAnchorSettings = pgTable("deskcat_anchor_settings", {
+  id: varchar("id", { length: 40 }).primaryKey(),
+  document: jsonb("document").$type<DeskCatAnchorDocument>().notNull(),
+  updatedByEmail: text("updated_by_email"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow()
+});
+
 export const adminAuditLogs = pgTable(
   "admin_audit_logs",
   {
@@ -266,5 +280,7 @@ export type CosmeticPosePlacement = typeof cosmeticPosePlacements.$inferSelect;
 export type NewCosmeticPosePlacement = typeof cosmeticPosePlacements.$inferInsert;
 export type ReflectionTreeRevision = typeof reflectionTreeRevisions.$inferSelect;
 export type NewReflectionTreeRevision = typeof reflectionTreeRevisions.$inferInsert;
+export type DeskCatAnchorSetting = typeof deskcatAnchorSettings.$inferSelect;
+export type NewDeskCatAnchorSetting = typeof deskcatAnchorSettings.$inferInsert;
 export type AdminAuditLog = typeof adminAuditLogs.$inferSelect;
 export type NewAdminAuditLog = typeof adminAuditLogs.$inferInsert;

@@ -5,6 +5,7 @@ import AppearanceController from "./components/AppearanceController";
 import AppearanceCatalogProvider from "./components/AppearanceCatalogProvider";
 import AppWarmup from "./components/AppWarmup";
 import AuthProvider from "./components/AuthProvider";
+import DeskCatAnchorProvider from "./components/DeskCatAnchorProvider";
 import GoogleAnalytics from "./components/GoogleAnalytics";
 import GlobalAccountLayer from "./components/GlobalAccountLayer";
 import "./globals.css";
@@ -41,12 +42,14 @@ export default function RootLayout({
           <GoogleAnalytics />
         </Suspense>
         <AuthProvider>
-          <AppearanceCatalogProvider>
-            <AppearanceController />
-            <AppWarmup />
-            <GlobalAccountLayer />
-            {children}
-          </AppearanceCatalogProvider>
+          <DeskCatAnchorProvider>
+            <AppearanceCatalogProvider>
+              <AppearanceController />
+              <AppWarmup />
+              <GlobalAccountLayer />
+              {children}
+            </AppearanceCatalogProvider>
+          </DeskCatAnchorProvider>
         </AuthProvider>
       </body>
     </html>

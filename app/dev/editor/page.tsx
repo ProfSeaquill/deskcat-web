@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
-import { DESKCAT_ANCHOR_DATA } from "../../lib/deskcatAnchors";
+import { loadDeskCatAnchors } from "../../lib/deskcatAnchors.server";
 import {
   EDITOR_SESSION_COOKIE,
   createDeskCatAnchorEditorSessionValue,
@@ -26,9 +26,11 @@ export default async function DeskCatEditorPage({ searchParams }: EditorPageProp
     return <EditorPasswordGate hasError={params?.error === "1"} />;
   }
 
+  const anchors = await loadDeskCatAnchors();
+
   return (
     <DeskCatAnchorEditor
-      initialDocument={DESKCAT_ANCHOR_DATA}
+      initialDocument={anchors.document}
       requiresToken={false}
     />
   );

@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { requireAdmin } from "../../lib/admin";
-import { DESKCAT_ANCHOR_DATA } from "../../lib/deskcatAnchors";
+import { loadDeskCatAnchors } from "../../lib/deskcatAnchors.server";
 import DeskCatAnchorEditor from "../../dev/deskcat-anchors/DeskCatAnchorEditor";
 
 export default async function AdminEditorPage() {
   await requireAdmin();
+  const anchors = await loadDeskCatAnchors();
 
   return (
     <>
@@ -16,7 +17,7 @@ export default async function AdminEditorPage() {
           Back to admin
         </Link>
       </div>
-      <DeskCatAnchorEditor initialDocument={DESKCAT_ANCHOR_DATA} requiresToken={false} />
+      <DeskCatAnchorEditor initialDocument={anchors.document} requiresToken={false} />
     </>
   );
 }

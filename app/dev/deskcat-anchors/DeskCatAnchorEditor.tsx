@@ -9,6 +9,7 @@ import {
   type PointerEvent as ReactPointerEvent
 } from "react";
 import DeskCatSprite from "../../components/DeskCatSprite";
+import { useDeskCatAnchors } from "../../components/DeskCatAnchorProvider";
 import { useAppearanceCatalog } from "../../components/AppearanceCatalogProvider";
 import {
   DESKCAT_ANCHOR_SLOT_IDS,
@@ -105,6 +106,7 @@ export default function DeskCatAnchorEditor({
   requiresToken: boolean;
 }) {
   const { catalog } = useAppearanceCatalog();
+  const { refresh: refreshDeskCatAnchors } = useDeskCatAnchors();
   const initialSnapshot = useRef(createStableJsonSnapshot(initialDocument));
   const canvasRef = useRef<HTMLDivElement>(null);
   const [document, setDocument] = useState(() => cloneDocument(initialDocument));
@@ -371,9 +373,10 @@ export default function DeskCatAnchorEditor({
       const result = (await response.json()) as { error?: string; errors?: string[] };
       if (!response.ok) throw new Error(result.errors?.join(" ") ?? result.error ?? "Publish failed.");
 
+      await refreshDeskCatAnchors();
       initialSnapshot.current = createStableJsonSnapshot(document);
       setStatus("saved");
-      setMessage("Published to the app via app/data/deskcatAnchors.json");
+      setMessage("Published to the app database");
     } catch (error) {
       setStatus("error");
       setMessage(error instanceof Error ? error.message : "Publish failed.");

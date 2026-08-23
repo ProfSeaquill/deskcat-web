@@ -1,5 +1,3 @@
-import { promises as fs } from "node:fs";
-import path from "node:path";
 import { NextRequest, NextResponse } from "next/server";
 import { isAdminEmail } from "../../../lib/admin";
 import { authOptions } from "../../../lib/auth";
@@ -14,10 +12,9 @@ import {
   validateDeskCatAnchorDocument,
   type DeskCatAnchorDocument
 } from "../../../lib/deskcatAnchors";
+import { saveDeskCatAnchors } from "../../../lib/deskcatAnchors.server";
 
 export const runtime = "nodejs";
-
-const anchorFilePath = path.join(process.cwd(), "app", "data", "deskcatAnchors.json");
 
 export async function PUT(request: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -49,12 +46,12 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ error: "Anchor data is invalid.", errors }, { status: 400 });
   }
 
-  const serialized = `${JSON.stringify(document as DeskCatAnchorDocument, null, 2)}\n`;
-  const temporaryPath = `${anchorFilePath}.tmp`;
-
   try {
-    await fs.writeFile(temporaryPath, serialized, "utf8");
-    await fs.rename(temporaryPath, anchorFilePath);
+    const saved = await saveDeskCatAnchors(
+      document as DeskCatAnchorDocument,
+      session?.user?.email ?? "legacy-anchor-editor"
+    );
+    return NextResponse.json({ saved: true, revision: saved.revision });
   } catch (error) {
     return NextResponse.json(
       {
@@ -66,6 +63,4 @@ export async function PUT(request: NextRequest) {
       { status: 500 }
     );
   }
-
-  return NextResponse.json({ saved: true });
 }

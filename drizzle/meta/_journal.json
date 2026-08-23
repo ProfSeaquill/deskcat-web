@@ -57,6 +57,13 @@
       "when": 1787347786340,
       "tag": "0007_outgoing_tinkerer",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1787439154748,
+      "tag": "0008_natural_thundra",
+      "breakpoints": true
     }
   ]
 }

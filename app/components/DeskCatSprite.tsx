@@ -13,6 +13,7 @@ import {
 import { getManagedCosmetic } from "../lib/appearanceCatalog";
 import type { DeskCatPoseLayout } from "../lib/deskcatAnchors";
 import { useAppearanceCatalog } from "./AppearanceCatalogProvider";
+import { useDeskCatAnchors } from "./DeskCatAnchorProvider";
 
 type DeskCatSpriteProps = {
   poseId: DeskCatPoseId;
@@ -36,8 +37,9 @@ export default function DeskCatSprite({
   overlay
 }: DeskCatSpriteProps) {
   const { catalog } = useAppearanceCatalog();
+  const { document: anchorDocument } = useDeskCatAnchors();
   const pose = getDeskCatPose(poseId);
-  const layout = layoutOverride ?? pose;
+  const layout = layoutOverride ?? anchorDocument.poses[poseId] ?? pose;
   const equippedCosmetics = DESKCAT_COSMETIC_CATEGORIES.flatMap(({ id: category }) => {
     const selection = cosmetics[category];
     if (selection === NONE_DESKCAT_COSMETIC_ID) return [];
