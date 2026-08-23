@@ -2,6 +2,7 @@ import {
   DESKCAT_ANCHOR_DATA,
   DESKCAT_POSE_IDS,
   type DeskCatAnchor,
+  type DeskCatAnchorDocument,
   type DeskCatAnchorAssetView,
   type DeskCatAnchorSlotId,
   type DeskCatPoseId
@@ -69,20 +70,21 @@ export type PoseAssetViewUsage = {
 };
 
 /**
- * Mirrors the anchor resolution in DeskCatSprite: a database pose placement
- * wins, then a per-cosmetic anchor override, then the shared slot anchor. Note
- * that an override replaces the slot anchor outright rather than merging with
- * it, so an override without an `assetView` falls back to "front".
+ * Mirrors the anchor resolution in DeskCatSprite: the published per-cosmetic
+ * override wins, followed by a legacy database pose placement and then the
+ * shared slot anchor. An override replaces the slot anchor outright, so an
+ * override without an `assetView` falls back to "front".
  */
 export function resolvePoseAssetViews(
   cosmeticId: string,
   anchorSlot: DeskCatAnchorSlotId,
+  anchorDocument: DeskCatAnchorDocument = DESKCAT_ANCHOR_DATA,
   placements: Partial<Record<DeskCatPoseId, DeskCatAnchor>> = {}
 ): PoseAssetViewUsage[] {
   return DESKCAT_POSE_IDS.map((poseId) => {
-    const layout = DESKCAT_ANCHOR_DATA.poses[poseId];
+    const layout = anchorDocument.poses[poseId];
     const slotAnchor = layout?.anchors[anchorSlot];
-    const anchor = placements[poseId] ?? layout?.cosmeticAnchors?.[cosmeticId] ?? slotAnchor;
+    const anchor = layout?.cosmeticAnchors?.[cosmeticId] ?? placements[poseId] ?? slotAnchor;
     const visible =
       Boolean(slotAnchor) &&
       slotAnchor?.visible !== false &&
@@ -104,6 +106,7 @@ export function resolvePoseAssetViews(
 export function groupPosesByAssetView(
   cosmeticId: string,
   anchorSlot: DeskCatAnchorSlotId,
+  anchorDocument: DeskCatAnchorDocument = DESKCAT_ANCHOR_DATA,
   placements: Partial<Record<DeskCatPoseId, DeskCatAnchor>> = {}
 ): Record<DeskCatAnchorAssetView, DeskCatPoseId[]> {
   const grouped: Record<DeskCatAnchorAssetView, DeskCatPoseId[]> = {
@@ -111,7 +114,7 @@ export function groupPosesByAssetView(
     threeQuarter: []
   };
 
-  for (const usage of resolvePoseAssetViews(cosmeticId, anchorSlot, placements)) {
+  for (const usage of resolvePoseAssetViews(cosmeticId, anchorSlot, anchorDocument, placements)) {
     if (!usage.visible) continue;
     grouped[usage.assetView].push(usage.poseId);
   }

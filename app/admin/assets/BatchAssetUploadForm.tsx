@@ -99,9 +99,8 @@ export default function BatchAssetUploadForm() {
     );
   }
 
-  // Rows sharing a cosmetic ID are variants of one cosmetic, and the upload API
-  // rejects a batch whose variants disagree on the cosmetic-level fields, so
-  // edits to those fields carry across the whole group.
+  // Rows sharing a cosmetic ID are variants of one cosmetic, so edits to the
+  // cosmetic-level fields carry across the whole group.
   function updateCosmeticGroup(rowId: string, update: Partial<BatchUploadRow>) {
     setRows((current) => {
       const target = current.find((row) => row.rowId === rowId);
@@ -190,6 +189,31 @@ export default function BatchAssetUploadForm() {
       return;
     }
 
+    const metadataByCosmeticId = new Map<
+      string,
+      Pick<BatchUploadRow, "category" | "anchorSlot">
+    >();
+    const inconsistentRow = rows.find((row) => {
+      const metadata = metadataByCosmeticId.get(row.cosmeticId);
+      if (!metadata) {
+        metadataByCosmeticId.set(row.cosmeticId, {
+          category: row.category,
+          anchorSlot: row.anchorSlot
+        });
+        return false;
+      }
+
+      return metadata.category !== row.category || metadata.anchorSlot !== row.anchorSlot;
+    });
+
+    if (inconsistentRow) {
+      setMessage(
+        `The rows using cosmetic ID “${inconsistentRow.cosmeticId}” must use the same category and anchor slot.`
+      );
+      setMessageIsError(true);
+      return;
+    }
+
     const pendingRows = rows.filter((row) => row.status !== "saved");
     if (pendingRows.length === 0) return;
 
@@ -268,7 +292,8 @@ export default function BatchAssetUploadForm() {
         <code>_front</code>, <code>_3:4</code>, <code>_three-quarter</code>) are read as variants of
         one cosmetic: <code>red_bowtie_front.png</code> and <code>red_bowtie_3:4.png</code> both land
         on <code>red-bowtie</code>. Rows sharing a cosmetic ID keep their name, category, and anchor
-        in sync.
+        in sync. Leave Pose override set to All poses for normal view variants; the published anchor
+        data decides which poses use Front or 3/4.
       </p>
 
       <label className="theme-text-secondary mt-5 block text-sm font-medium">
@@ -297,7 +322,7 @@ export default function BatchAssetUploadForm() {
                   <th className="px-3 py-2 font-semibold">Anchor</th>
                   <th className="px-3 py-2 font-semibold">Purpose</th>
                   <th className="px-3 py-2 font-semibold">View</th>
-                  <th className="px-3 py-2 font-semibold">Pose</th>
+                  <th className="px-3 py-2 font-semibold">Pose override</th>
                   <th className="px-3 py-2 font-semibold">App access</th>
                   <th className="px-3 py-2 font-semibold">Status</th>
                 </tr>
@@ -439,7 +464,7 @@ export default function BatchAssetUploadForm() {
                         <select
                           value={row.poseId}
                           disabled={isLocked}
-                          aria-label={`Pose for ${row.file.name}`}
+                          aria-label={`Pose override for ${row.file.name}`}
                           onChange={(event) =>
                             updateRow(row.rowId, {
                               poseId: event.currentTarget.value as BatchUploadRow["poseId"],

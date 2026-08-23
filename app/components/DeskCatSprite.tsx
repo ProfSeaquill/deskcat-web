@@ -48,17 +48,15 @@ export default function DeskCatSprite({
     if (!cosmetic) return [];
     const slotAnchor = layout.anchors[cosmetic.anchorSlot];
     if (!slotAnchor || slotAnchor.visible === false) return [];
-    // A layout override is the editor's in-memory document. It must win there
-    // so the preview reflects unsaved anchor and asset-view changes instead of
-    // being masked by the last pose-specific values loaded from the database.
-    const anchor = layoutOverride
-      ? layout.cosmeticAnchors?.[cosmetic.id] ?? slotAnchor
-      : cosmetic.poseAnchors[pose.id] ?? layout.cosmeticAnchors?.[cosmetic.id] ?? slotAnchor;
+    // The published anchor document is authoritative in the app just as the
+    // in-memory document is in the editor. Legacy pose placements remain a
+    // fallback for cosmetics that do not yet have a published override.
+    const anchor =
+      layout.cosmeticAnchors?.[cosmetic.id] ?? cosmetic.poseAnchors[pose.id] ?? slotAnchor;
     if (!anchor || anchor.visible === false) return [];
     const assetView = anchor?.assetView ?? "front";
-    const asset = layoutOverride
-      ? cosmetic.renderSrcByView[assetView] ?? cosmetic.poseRenderSrc[pose.id] ?? cosmetic.renderSrc
-      : cosmetic.poseRenderSrc[pose.id] ?? cosmetic.renderSrcByView[assetView] ?? cosmetic.renderSrc;
+    const asset =
+      cosmetic.renderSrcByView[assetView] ?? cosmetic.poseRenderSrc[pose.id] ?? cosmetic.renderSrc;
     return asset ? [{ cosmetic, anchor, asset }] : [];
   });
 

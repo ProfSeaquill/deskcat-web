@@ -10,7 +10,12 @@ import {
   cosmetics
 } from "../../db/schema";
 import { requireAdmin } from "../../lib/admin";
-import type { DeskCatAnchorSlotId, DeskCatPoseId } from "../../lib/deskcatAnchors";
+import type {
+  DeskCatAnchorDocument,
+  DeskCatAnchorSlotId,
+  DeskCatPoseId
+} from "../../lib/deskcatAnchors";
+import { loadDeskCatAnchors } from "../../lib/deskcatAnchors.server";
 import {
   ASSET_VIEW_LABELS,
   POSE_LABELS,
@@ -305,7 +310,10 @@ const SPLIT_VARIANT_ID_PATTERN = /-(?:3-4|34|three-quarter|threequarter|front)$/
  * a variant of its cosmetic rather than an asset of its own, and labels each
  * variant with the poses that actually draw it.
  */
-function buildAssetGroups(assets: ExistingAsset[]): AssetGroupRow[] {
+function buildAssetGroups(
+  assets: ExistingAsset[],
+  anchorDocument: DeskCatAnchorDocument
+): AssetGroupRow[] {
   const byCosmeticId = new Map<string, ExistingAsset[]>();
 
   for (const asset of assets) {
@@ -316,7 +324,11 @@ function buildAssetGroups(assets: ExistingAsset[]): AssetGroupRow[] {
 
   return Array.from(byCosmeticId.values()).map((cosmeticAssetRows) => {
     const [first] = cosmeticAssetRows;
-    const posesByView = groupPosesByAssetView(first.cosmeticId, first.anchorSlot);
+    const posesByView = groupPosesByAssetView(
+      first.cosmeticId,
+      first.anchorSlot,
+      anchorDocument
+    );
     const renderRows = cosmeticAssetRows.filter((asset) => asset.purpose === "render");
     const posesWithOwnAsset = new Set(
       renderRows.flatMap((asset) => (asset.poseId ? [asset.poseId] : []))
@@ -438,7 +450,10 @@ function buildGroupWarnings({
 
 export default async function AdminAssetsPage() {
   await requireAdmin();
-  const { assets, backgrounds, error } = await loadAssets();
+  const [{ assets, backgrounds, error }, anchors] = await Promise.all([
+    loadAssets(),
+    loadDeskCatAnchors()
+  ]);
   const existingAssets: ExistingAsset[] = assets.map(({ asset, cosmetic }) => ({
     id: asset.id,
     cosmeticId: asset.cosmeticId,
@@ -453,7 +468,7 @@ export default async function AdminAssetsPage() {
     sizeLabel: `${asset.width} x ${asset.height} · ${Math.round(asset.byteSize / 1024)} KB`,
     accessible: asset.accessible
   }));
-  const assetGroups = buildAssetGroups(existingAssets);
+  const assetGroups = buildAssetGroups(existingAssets, anchors.document);
 
   return (
     <main className="min-h-screen px-6 py-10">

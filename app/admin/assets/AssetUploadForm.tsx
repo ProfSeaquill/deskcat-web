@@ -179,7 +179,7 @@ export default function AssetUploadForm() {
         </label>
 
         <label className="theme-text-secondary block text-sm font-medium">
-          Pose
+          Pose override
           <select name="poseId" className="theme-input mt-2 w-full rounded-xl border px-3 py-2">
             {POSE_OPTIONS.map((pose) => (
               <option key={pose.id || "all"} value={pose.id}>
@@ -187,6 +187,10 @@ export default function AssetUploadForm() {
               </option>
             ))}
           </select>
+          <span className="theme-text-tertiary mt-2 block text-xs">
+            Leave this on All poses for Front/3/4 variants. Choose one pose only for artwork made
+            specifically for that pose.
+          </span>
         </label>
 
         <label className="theme-text-secondary block text-sm font-medium">

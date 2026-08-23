@@ -151,23 +151,11 @@ export async function POST(request: Request) {
     const db = getDb();
     const [existingCosmetic] = await db
       .select({
-        id: cosmetics.id,
-        category: cosmetics.category,
-        anchorSlot: cosmetics.anchorSlot
+        id: cosmetics.id
       })
       .from(cosmetics)
       .where(eq(cosmetics.id, cosmeticId))
       .limit(1);
-
-    if (
-      existingCosmetic &&
-      (existingCosmetic.category !== category || existingCosmetic.anchorSlot !== anchorSlot)
-    ) {
-      return jsonError(
-        "Rows sharing a cosmetic ID must use the same category and anchor slot.",
-        409
-      );
-    }
 
     const [existingAsset] = await db
       .select()
@@ -201,7 +189,13 @@ export async function POST(request: Request) {
       if (existingCosmetic) {
         await db
           .update(cosmetics)
-          .set({ label: cosmeticName, description, updatedAt: new Date() })
+          .set({
+            label: cosmeticName,
+            description,
+            category: category as DeskCatCosmeticCategory,
+            anchorSlot: anchorSlot as DeskCatAnchorSlotId,
+            updatedAt: new Date()
+          })
           .where(eq(cosmetics.id, cosmeticId));
       } else {
         await db
