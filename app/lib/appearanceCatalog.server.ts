@@ -16,6 +16,25 @@ import {
 } from "./appearanceCatalog";
 import type { DeskCatAnchor, DeskCatPoseId } from "./deskcatAnchors";
 
+const COSMETIC_VIEW_SUFFIXES = [
+  { pattern: /-(?:3-4|34|three-quarter|threequarter|3q)$/, assetView: "threeQuarter" },
+  { pattern: /-front$/, assetView: "front" }
+] as const;
+
+/**
+ * Older uploads used the filename-derived view suffix as part of the cosmetic
+ * ID (for example, red-bowtie-3-4). Treat those rows as view variants of the
+ * base cosmetic while building the public catalog. This keeps the live app
+ * correct even before the optional database cleanup script is run.
+ */
+function parseLegacyCosmeticView(cosmeticId: string) {
+  for (const { pattern, assetView } of COSMETIC_VIEW_SUFFIXES) {
+    const baseId = cosmeticId.replace(pattern, "");
+    if (baseId !== cosmeticId && baseId.length > 0) return { baseId, assetView };
+  }
+  return null;
+}
+
 function publicAsset(asset: {
   id: string;
   width: number;
@@ -87,10 +106,12 @@ export async function loadPublicAppearanceCatalog(): Promise<AppearanceCatalog> 
   const cosmeticDrafts = new Map<string, CosmeticDraft>();
 
   for (const { cosmetic, asset } of assetRows) {
-    let draft = cosmeticDrafts.get(cosmetic.id);
+    const legacyView = parseLegacyCosmeticView(cosmetic.id);
+    const cosmeticId = legacyView?.baseId ?? cosmetic.id;
+    let draft = cosmeticDrafts.get(cosmeticId);
     if (!draft) {
       draft = {
-        id: cosmetic.id,
+        id: cosmeticId,
         label: cosmetic.label,
         description: cosmetic.description,
         category: cosmetic.category,
@@ -105,7 +126,7 @@ export async function loadPublicAppearanceCatalog(): Promise<AppearanceCatalog> 
         sortOrder: cosmetic.sortOrder,
         updatedAt: cosmetic.updatedAt
       };
-      cosmeticDrafts.set(cosmetic.id, draft);
+      cosmeticDrafts.set(cosmeticId, draft);
     }
 
     const image = publicAsset(asset);
@@ -116,15 +137,17 @@ export async function loadPublicAppearanceCatalog(): Promise<AppearanceCatalog> 
       draft.previewSrc ??= image;
     } else if (asset.poseId) {
       draft.poseRenderSrc[asset.poseId] ??= image;
-    } else if (asset.assetView) {
-      draft.renderSrcByView[asset.assetView] ??= image;
+    } else if (asset.assetView ?? legacyView?.assetView) {
+      const assetView = asset.assetView ?? legacyView?.assetView;
+      if (assetView) draft.renderSrcByView[assetView] ??= image;
     } else {
       draft.renderSrc ??= image;
     }
   }
 
   for (const placement of placementRows) {
-    const draft = cosmeticDrafts.get(placement.cosmeticId);
+    const cosmeticId = parseLegacyCosmeticView(placement.cosmeticId)?.baseId ?? placement.cosmeticId;
+    const draft = cosmeticDrafts.get(cosmeticId);
     if (!draft) continue;
 
     const anchor: DeskCatAnchor = {
