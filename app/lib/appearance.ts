@@ -97,8 +97,21 @@ export function getBackgroundTheme(background: DeskCatBackground, catalog: Appea
   );
 }
 
+let cachedFallbackRevision: string | null = null;
+let cachedFallbackSettings: AppearanceSettings = DEFAULT_APPEARANCE_SETTINGS;
+
+// useSyncExternalStore compares snapshots by reference, so every return path here has to hand
+// back a stable object. A freshly normalized fallback on each call re-renders forever.
+function getFallbackSettings(catalog: AppearanceCatalog): AppearanceSettings {
+  if (cachedFallbackRevision !== catalog.revision) {
+    cachedFallbackRevision = catalog.revision;
+    cachedFallbackSettings = normalizeAppearanceSettings(DEFAULT_APPEARANCE_SETTINGS, catalog);
+  }
+  return cachedFallbackSettings;
+}
+
 export function loadAppearanceSettings(catalog: AppearanceCatalog): AppearanceSettings {
-  const fallback = normalizeAppearanceSettings(DEFAULT_APPEARANCE_SETTINGS, catalog);
+  const fallback = getFallbackSettings(catalog);
   if (typeof window === "undefined") return fallback;
 
   // The provider begins with a deliberately empty placeholder while the managed catalog loads.
@@ -125,7 +138,11 @@ export function loadAppearanceSettings(catalog: AppearanceCatalog): AppearanceSe
     return normalized;
   } catch {
     const normalizedRaw = JSON.stringify(fallback);
-    localStorage.setItem(APPEARANCE_KEY, normalizedRaw);
+    try {
+      localStorage.setItem(APPEARANCE_KEY, normalizedRaw);
+    } catch {
+      // Storage can be unavailable (private mode, blocked cookies); keep the fallback in memory.
+    }
     cachedAppearanceKey = `${catalog.revision}:${normalizedRaw}`;
     cachedAppearanceSettings = fallback;
     return fallback;
