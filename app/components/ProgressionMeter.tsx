@@ -244,7 +244,7 @@ export default function ProgressionMeter({
 
         {rewards.map((reward) => {
           const rewardKey = `${reward.label}-${reward.amount}`;
-          const preview = reward.cosmeticId
+          const cosmeticPreview = reward.cosmeticId
             ? getManagedCosmetic(catalog, reward.cosmeticId)
             : null;
           const isOpen = openRewardKey === rewardKey;
@@ -273,12 +273,11 @@ export default function ProgressionMeter({
               <button
                 type="button"
                 onClick={() =>
-                  preview && setOpenRewardKey((current) => (current === rewardKey ? null : rewardKey))
+                  setOpenRewardKey((current) => (current === rewardKey ? null : rewardKey))
                 }
                 aria-label={isEarned ? `Earned ${reward.label}` : reward.label}
-                aria-expanded={preview ? isOpen : undefined}
-                aria-controls={preview ? `reward-preview-${reward.amount}` : undefined}
-                disabled={!preview}
+                aria-expanded={isOpen}
+                aria-controls={`reward-preview-${reward.amount}`}
                 className={
                   isEarned
                     ? "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-left text-sm font-bold uppercase tracking-[0.12em] shadow-[0_0_16px_rgba(122,185,230,0.32)] transition hover:-translate-y-0.5 hover:shadow-[0_0_20px_rgba(122,185,230,0.46)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
@@ -302,24 +301,26 @@ export default function ProgressionMeter({
                 {isEarned ? "Earned" : reward.label}
               </button>
 
-              {isOpen && preview && (
+              {isOpen && (
                 <div
                   id={`reward-preview-${reward.amount}`}
                   role="tooltip"
                   className="theme-surface-strong absolute right-0 top-full mt-2 w-36 rounded-[20px] border p-3 shadow-xl"
                 >
-                  <div className="theme-subsurface flex h-24 items-center justify-center rounded-2xl border p-2">
-                    <Image
-                      src={preview.previewSrc.src}
-                      alt={preview.label}
-                      width={preview.previewSrc.width}
-                      height={preview.previewSrc.height}
-                      unoptimized
-                      className="h-auto max-h-20 w-auto object-contain"
-                    />
-                  </div>
+                  {cosmeticPreview && (
+                    <div className="theme-subsurface flex h-24 items-center justify-center rounded-2xl border p-2">
+                      <Image
+                        src={cosmeticPreview.previewSrc.src}
+                        alt=""
+                        width={cosmeticPreview.previewSrc.width}
+                        height={cosmeticPreview.previewSrc.height}
+                        unoptimized
+                        className="h-auto max-h-20 w-auto object-contain"
+                      />
+                    </div>
+                  )}
                   <p className="theme-text-primary mt-2 text-center text-sm font-semibold">
-                    {preview.label}
+                    {reward.label}
                   </p>
                 </div>
               )}
