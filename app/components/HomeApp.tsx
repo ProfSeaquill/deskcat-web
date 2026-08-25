@@ -209,7 +209,7 @@ export default function HomeApp({ showDonationMeter = true }: HomeAppProps) {
           </div>
 
           <div className="px-1">
-            <p className="theme-text-tertiary text-xs">v0 — local-only MVP</p>
+            <p className="theme-text-tertiary text-xs">v1 2026</p>
           </div>
         </section>
 
