@@ -18,6 +18,7 @@ export type AssetGroupRow = {
   label: string;
   category: string;
   anchorSlot: string;
+  released: boolean;
   variants: AssetVariantRow[];
   warnings: string[];
 };
@@ -31,6 +32,12 @@ export default function AssetGroupTable({ groups }: { groups: AssetGroupRow[] })
     )
   );
   const [deleteByAssetId, setDeleteByAssetId] = useState<Record<string, boolean>>({});
+  const [releasedByCosmeticId, setReleasedByCosmeticId] = useState<Record<string, "true" | "false">>(
+    () =>
+      Object.fromEntries(
+        groups.map((group) => [group.cosmeticId, group.released ? "true" : "false"] as const)
+      )
+  );
 
   function setGroupAccess(group: AssetGroupRow, value: "true" | "false") {
     setAccessByAssetId((current) => {
@@ -49,6 +56,8 @@ export default function AssetGroupTable({ groups }: { groups: AssetGroupRow[] })
     <div className="space-y-4">
       {groups.map((group) => {
         const groupAccess = groupAccessValue(group);
+        const released = releasedByCosmeticId[group.cosmeticId] ?? "true";
+        const isPreviewOnly = released === "false";
 
         return (
           <div key={group.cosmeticId} className="theme-subsurface rounded-2xl border p-4">
@@ -62,21 +71,50 @@ export default function AssetGroupTable({ groups }: { groups: AssetGroupRow[] })
                 </p>
               </div>
 
-              <label className="theme-text-secondary text-sm font-medium">
-                Set all variants
-                <select
-                  value={groupAccess}
-                  onChange={(event) =>
-                    setGroupAccess(group, event.currentTarget.value as "true" | "false")
-                  }
-                  className="theme-input mt-1 block min-w-[150px] rounded-xl border px-3 py-2"
-                >
-                  {groupAccess === "" && <option value="">Mixed</option>}
-                  <option value="true">Accessible</option>
-                  <option value="false">Hidden</option>
-                </select>
-              </label>
+              <div className="flex flex-wrap gap-3">
+                <label className="theme-text-secondary text-sm font-medium">
+                  Availability
+                  <input type="hidden" name="releaseCosmeticId" value={group.cosmeticId} />
+                  <select
+                    name={`released:${group.cosmeticId}`}
+                    value={released}
+                    onChange={(event) =>
+                      setReleasedByCosmeticId((current) => ({
+                        ...current,
+                        [group.cosmeticId]: event.currentTarget.value as "true" | "false"
+                      }))
+                    }
+                    className="theme-input mt-1 block min-w-[190px] rounded-xl border px-3 py-2"
+                  >
+                    <option value="true">Available now</option>
+                    <option value="false">Coming soon (preview only)</option>
+                  </select>
+                </label>
+
+                <label className="theme-text-secondary text-sm font-medium">
+                  Set all variants
+                  <select
+                    value={groupAccess}
+                    onChange={(event) =>
+                      setGroupAccess(group, event.currentTarget.value as "true" | "false")
+                    }
+                    className="theme-input mt-1 block min-w-[150px] rounded-xl border px-3 py-2"
+                  >
+                    {groupAccess === "" && <option value="">Mixed</option>}
+                    <option value="true">Accessible</option>
+                    <option value="false">Hidden</option>
+                  </select>
+                </label>
+              </div>
             </div>
+
+            {isPreviewOnly && (
+              <p className="theme-text-secondary mt-3 rounded-xl border border-sky-400/40 bg-sky-950/20 p-3 text-xs">
+                Preview only. This accessory can appear in the donation meter&apos;s reward
+                preview, but nobody can equip it in My DeskCat yet. Keep its variants accessible
+                so the preview image can load.
+              </p>
+            )}
 
             {group.warnings.length > 0 && (
               <ul className="mt-3 space-y-1 rounded-xl border border-amber-400/40 bg-amber-950/20 p-3 text-xs text-amber-200">

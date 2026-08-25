@@ -577,7 +577,9 @@ export default function DeskCatAnchorEditor({
                       {category.id !== "glasses" && (
                         <option value={NONE_DESKCAT_COSMETIC_ID}>None</option>
                       )}
-                      {getManagedCosmeticsForCategory(catalog, category.id).map((cosmetic) => (
+                      {getManagedCosmeticsForCategory(catalog, category.id, {
+                        includeUnreleased: true
+                      }).map((cosmetic) => (
                         <option key={cosmetic.id} value={cosmetic.id}>
                           {cosmetic.label}
                         </option>

@@ -4,6 +4,8 @@ import { asc, ne } from "drizzle-orm";
 import { getDb } from "../db";
 import { cosmetics } from "../db/schema";
 import { requireAdmin } from "../lib/admin";
+import { loadPublicAppearanceCatalog } from "../lib/appearanceCatalog.server";
+import { EMPTY_APPEARANCE_CATALOG } from "../lib/appearanceCatalog";
 import {
   loadDonationProgress,
   saveDonationProgress
@@ -25,13 +27,35 @@ const DONATION_REWARD_ROW_COUNT = 3;
 async function loadManagedCosmetics() {
   try {
     return await getDb()
-      .select({ id: cosmetics.id, label: cosmetics.label })
+      .select({ id: cosmetics.id, label: cosmetics.label, status: cosmetics.status })
       .from(cosmetics)
       .where(ne(cosmetics.status, "retired"))
       .orderBy(asc(cosmetics.sortOrder), asc(cosmetics.label));
   } catch {
     return [];
   }
+}
+
+async function loadPublicCatalog() {
+  try {
+    return await loadPublicAppearanceCatalog();
+  } catch {
+    return EMPTY_APPEARANCE_CATALOG;
+  }
+}
+
+/**
+ * A reward preview resolves through the public catalog, so a cosmetic that is
+ * missing from it renders an empty tooltip no matter what the reward points at.
+ */
+function describeRewardCosmetic(
+  cosmetic: { label: string; status: string },
+  isInPublicCatalog: boolean
+) {
+  if (!isInPublicCatalog) return `${cosmetic.label} — no accessible asset, will not preview`;
+  return cosmetic.status === "published"
+    ? cosmetic.label
+    : `${cosmetic.label} — coming soon`;
 }
 
 function formatCurrency(amount: number, currencyCode: string) {
@@ -151,6 +175,8 @@ export default async function AdminPage() {
   const donationProgress = await loadDonationProgress();
   const recentDonations = await loadRecentDonations();
   const managedCosmetics = await loadManagedCosmetics();
+  const publicCatalog = await loadPublicCatalog();
+  const publicCosmeticIds = new Set(publicCatalog.cosmetics.map((cosmetic) => cosmetic.id));
   const donationPercent =
     donationProgress.goalAmount > 0
       ? Math.min(100, Math.round((donationProgress.currentAmount / donationProgress.goalAmount) * 100))
@@ -328,7 +354,10 @@ export default async function AdminPage() {
                           <option value="">None</option>
                           {managedCosmetics.map((cosmetic) => (
                             <option key={cosmetic.id} value={cosmetic.id}>
-                              {cosmetic.label}
+                              {describeRewardCosmetic(
+                                cosmetic,
+                                publicCosmeticIds.has(cosmetic.id)
+                              )}
                             </option>
                           ))}
                         </select>

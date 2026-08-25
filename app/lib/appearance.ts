@@ -52,7 +52,8 @@ function normalizeCosmeticSelection(
   if (typeof value !== "string") return fallback;
 
   const cosmetic = getManagedCosmetic(catalog, value);
-  return cosmetic?.category === category ? value : fallback;
+  if (!cosmetic?.released) return fallback;
+  return cosmetic.category === category ? value : fallback;
 }
 
 function normalizeCosmetics(
@@ -75,7 +76,7 @@ function migrateLegacyCosmetic(value: unknown, catalog: AppearanceCatalog) {
   if (typeof value !== "string") return migrated;
 
   const cosmetic = getManagedCosmetic(catalog, value);
-  if (cosmetic) migrated[cosmetic.category] = cosmetic.id;
+  if (cosmetic?.released) migrated[cosmetic.category] = cosmetic.id;
   return migrated;
 }
 

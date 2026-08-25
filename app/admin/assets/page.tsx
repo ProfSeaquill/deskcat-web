@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { del } from "@vercel/blob";
 import { revalidatePath } from "next/cache";
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq, ne } from "drizzle-orm";
 import { getDb } from "../../db";
 import {
   adminAuditLogs,
@@ -43,6 +43,7 @@ type ExistingAsset = {
   url: string;
   sizeLabel: string;
   accessible: boolean;
+  released: boolean;
 };
 
 type ExistingBackground = typeof appearanceBackgrounds.$inferSelect;
@@ -73,7 +74,8 @@ async function loadAssets() {
           cosmetic: {
             label: cosmetics.label,
             category: cosmetics.category,
-            anchorSlot: cosmetics.anchorSlot
+            anchorSlot: cosmetics.anchorSlot,
+            status: cosmetics.status
           }
         })
         .from(cosmeticAssets)
@@ -225,6 +227,39 @@ async function saveAssetChanges(formData: FormData) {
   const actorEmail = session.user?.email ?? "unknown";
   const db = getDb();
   const assetIds = formData.getAll("assetId").filter((value): value is string => typeof value === "string");
+  const cosmeticIds = formData
+    .getAll("releaseCosmeticId")
+    .filter((value): value is string => typeof value === "string");
+
+  for (const cosmeticId of cosmeticIds) {
+    if (!MANAGED_ID_PATTERN.test(cosmeticId)) {
+      throw new Error("Choose a valid cosmetic.");
+    }
+
+    const releaseValue = formData.get(`released:${cosmeticId}`);
+    if (releaseValue !== "true" && releaseValue !== "false") {
+      throw new Error("Choose a valid availability setting.");
+    }
+
+    const released = releaseValue === "true";
+
+    // Only move between draft and published here; a retired cosmetic stays retired.
+    const [cosmetic] = await db
+      .update(cosmetics)
+      .set({ status: released ? "published" : "draft", updatedAt: new Date() })
+      .where(and(eq(cosmetics.id, cosmeticId), ne(cosmetics.status, "retired")))
+      .returning();
+
+    if (!cosmetic) continue;
+
+    await db.insert(adminAuditLogs).values({
+      actorEmail,
+      action: released ? "cosmetic.release" : "cosmetic.unrelease",
+      targetType: "cosmetic",
+      targetId: cosmetic.id,
+      metadata: { status: cosmetic.status }
+    });
+  }
 
   for (const assetId of assetIds) {
     const assetSource = formData.get(`assetSource:${assetId}`);
@@ -301,6 +336,8 @@ async function saveAssetChanges(formData: FormData) {
   }
 
   revalidatePath("/admin/assets");
+  revalidatePath("/my-deskcat");
+  revalidatePath("/");
 }
 
 const SPLIT_VARIANT_ID_PATTERN = /-(?:3-4|34|three-quarter|threequarter|front)$/;
@@ -382,6 +419,7 @@ function buildAssetGroups(
       label: first.label,
       category: first.category,
       anchorSlot: first.anchorSlot,
+      released: first.released,
       variants,
       warnings: buildGroupWarnings({
         cosmeticId: first.cosmeticId,
@@ -466,7 +504,8 @@ export default async function AdminAssetsPage() {
     storageKey: asset.storageKey,
     url: asset.publicUrl,
     sizeLabel: `${asset.width} x ${asset.height} · ${Math.round(asset.byteSize / 1024)} KB`,
-    accessible: asset.accessible
+    accessible: asset.accessible,
+    released: cosmetic.status === "published"
   }));
   const assetGroups = buildAssetGroups(existingAssets, anchors.document);
 

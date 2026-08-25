@@ -322,6 +322,11 @@ export default function ProgressionMeter({
                   <p className="theme-text-primary mt-2 text-center text-sm font-semibold">
                     {reward.label}
                   </p>
+                  {cosmeticPreview && !cosmeticPreview.released && (
+                    <p className="theme-text-tertiary mt-1 text-center text-[10px] font-semibold uppercase tracking-[0.16em]">
+                      Coming soon
+                    </p>
+                  )}
                 </div>
               )}
             </div>

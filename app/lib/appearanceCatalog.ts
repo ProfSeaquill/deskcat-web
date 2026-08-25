@@ -24,6 +24,12 @@ export type ManagedCosmetic = {
   description: string;
   category: DeskCatCosmeticCategory;
   anchorSlot: DeskCatAnchorSlotId;
+  /**
+   * Released cosmetics can be equipped in My DeskCat. Unreleased ones stay in the
+   * catalog so the donation meter can preview what is coming, but never become
+   * selectable. See getManagedCosmeticsForCategory and normalizeCosmeticSelection.
+   */
+  released: boolean;
   previewSrc: ManagedImageAsset;
   renderSrc: ManagedImageAsset;
   renderSrcByView: Partial<Record<DeskCatAnchorAssetView, ManagedImageAsset>>;
@@ -172,6 +178,7 @@ export const DEFAULT_DESKCAT_GLASSES_COSMETIC: ManagedCosmetic = {
   description: "DeskCat's standard black glasses.",
   category: "glasses",
   anchorSlot: "eyes",
+  released: true,
   previewSrc: DEFAULT_GLASSES_ASSET,
   renderSrc: DEFAULT_GLASSES_ASSET,
   renderSrcByView: {
@@ -203,11 +210,14 @@ export function getManagedCosmetic(catalog: AppearanceCatalog, cosmeticId: strin
 
 export function getManagedCosmeticsForCategory(
   catalog: AppearanceCatalog,
-  category: DeskCatCosmeticCategory
+  category: DeskCatCosmeticCategory,
+  options: { includeUnreleased?: boolean } = {}
 ) {
   const managedCosmetics = catalog.cosmetics.filter(
     (cosmetic) =>
-      cosmetic.category === category && cosmetic.id !== DEFAULT_DESKCAT_GLASSES_ID
+      cosmetic.category === category &&
+      cosmetic.id !== DEFAULT_DESKCAT_GLASSES_ID &&
+      (options.includeUnreleased === true || cosmetic.released)
   );
 
   return category === "glasses"

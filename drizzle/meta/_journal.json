@@ -64,6 +64,13 @@
       "when": 1787439154748,
       "tag": "0008_natural_thundra",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1787700000000,
+      "tag": "0009_shiny_release_state",
+      "breakpoints": true
     }
   ]
 }
