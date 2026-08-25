@@ -28,7 +28,11 @@ function subscribeToAppearanceStore(onStoreChange: () => void) {
   };
 }
 
-export default function HomeApp() {
+type HomeAppProps = {
+  showDonationMeter?: boolean;
+};
+
+export default function HomeApp({ showDonationMeter = true }: HomeAppProps) {
   const { catalog } = useAppearanceCatalog();
   const router = useRouter();
   const isClient = useIsClient();
@@ -56,6 +60,8 @@ export default function HomeApp() {
   }, []);
 
   useEffect(() => {
+    if (!showDonationMeter) return;
+
     let isCancelled = false;
 
     async function loadInitialDonationProgress() {
@@ -77,11 +83,15 @@ export default function HomeApp() {
     return () => {
       isCancelled = true;
     };
-  }, []);
+  }, [showDonationMeter]);
 
   return (
     <main className="min-h-screen px-6 py-10">
-      <div className="mx-auto grid w-full max-w-6xl gap-8 lg:grid-cols-[minmax(0,1fr)_316px] lg:items-start">
+      <div
+        className={`mx-auto grid w-full gap-8 lg:items-start ${
+          showDonationMeter ? "max-w-6xl lg:grid-cols-[minmax(0,1fr)_316px]" : "max-w-3xl"
+        }`}
+      >
         <section className="space-y-4">
           <div className="theme-surface relative overflow-visible rounded-[32px] border px-5 pb-4 pt-16 backdrop-blur sm:pt-4">
             <div className="absolute right-4 top-4">
@@ -203,17 +213,19 @@ export default function HomeApp() {
           </div>
         </section>
 
-        <aside className="self-start">
-          <ProgressionMeter
-            title={donationProgress.title}
-            actionLabel={donationProgress.actionLabel}
-            currentAmount={donationProgress.currentAmount}
-            goalAmount={donationProgress.goalAmount}
-            currencyCode={donationProgress.currencyCode}
-            rewards={donationProgress.rewards}
-            onDonationConfirmed={refreshDonationProgress}
-          />
-        </aside>
+        {showDonationMeter && (
+          <aside className="self-start">
+            <ProgressionMeter
+              title={donationProgress.title}
+              actionLabel={donationProgress.actionLabel}
+              currentAmount={donationProgress.currentAmount}
+              goalAmount={donationProgress.goalAmount}
+              currencyCode={donationProgress.currencyCode}
+              rewards={donationProgress.rewards}
+              onDonationConfirmed={refreshDonationProgress}
+            />
+          </aside>
+        )}
       </div>
     </main>
   );

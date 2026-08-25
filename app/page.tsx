@@ -1,12 +1,18 @@
 import HomeApp from "./components/HomeApp";
-import { isConstructionScreenEnabled } from "./lib/featureFlags.server";
+import {
+  isConstructionScreenEnabled,
+  isDonationMeterEnabled
+} from "./lib/featureFlags.server";
 
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  const isEnabled = await isConstructionScreenEnabled();
+  const [isEnabled, donationMeterEnabled] = await Promise.all([
+    isConstructionScreenEnabled(),
+    isDonationMeterEnabled()
+  ]);
 
-  return isEnabled ? <ConstructionScreen /> : <HomeApp />;
+  return isEnabled ? <ConstructionScreen /> : <HomeApp showDonationMeter={donationMeterEnabled} />;
 }
 
 function ConstructionScreen() {

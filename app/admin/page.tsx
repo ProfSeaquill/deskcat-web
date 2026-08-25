@@ -10,7 +10,9 @@ import {
 } from "../lib/donations.server";
 import {
   isConstructionScreenEnabled,
-  setConstructionScreenEnabled
+  isDonationMeterEnabled,
+  setConstructionScreenEnabled,
+  setDonationMeterEnabled
 } from "../lib/featureFlags.server";
 import {
   DESKCAT_COSMETIC_CATEGORIES
@@ -66,6 +68,17 @@ async function updateConstructionScreen(formData: FormData) {
   const enabled = formData.get("enabled") === "true";
 
   await setConstructionScreenEnabled(enabled, session.user?.email ?? "unknown");
+  revalidatePath("/");
+  revalidatePath("/admin");
+}
+
+async function updateDonationMeter(formData: FormData) {
+  "use server";
+
+  const session = await requireAdmin();
+  const enabled = formData.get("enabled") === "true";
+
+  await setDonationMeterEnabled(enabled, session.user?.email ?? "unknown");
   revalidatePath("/");
   revalidatePath("/admin");
 }
@@ -134,6 +147,7 @@ async function updateDonationProgress(formData: FormData) {
 export default async function AdminPage() {
   const session = await requireAdmin();
   const constructionScreenEnabled = await isConstructionScreenEnabled();
+  const donationMeterEnabled = await isDonationMeterEnabled();
   const donationProgress = await loadDonationProgress();
   const recentDonations = await loadRecentDonations();
   const managedCosmetics = await loadManagedCosmetics();
@@ -178,7 +192,7 @@ export default async function AdminPage() {
           </div>
         </header>
 
-        <section className="grid gap-4 md:grid-cols-3">
+        <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <StatusCard
             label="Donation progress"
             value={`${donationPercent}%`}
@@ -193,6 +207,11 @@ export default async function AdminPage() {
             label="Construction"
             value={constructionScreenEnabled ? "Active" : "Inactive"}
             detail={constructionScreenEnabled ? "Homepage is hidden" : "Homepage is public"}
+          />
+          <StatusCard
+            label="Donation meter"
+            value={donationMeterEnabled ? "Visible" : "Hidden"}
+            detail={donationMeterEnabled ? "Shown on the homepage" : "Hidden from the homepage"}
           />
         </section>
 
@@ -219,6 +238,34 @@ export default async function AdminPage() {
               className="theme-button-primary theme-hover-highlight inline-flex items-center justify-center rounded-2xl border px-5 py-3 font-semibold transition disabled:cursor-not-allowed disabled:opacity-50"
             >
               Deactivate construction screen
+            </button>
+          </form>
+        </section>
+
+        <section className="theme-surface rounded-[28px] border p-6 backdrop-blur">
+          <h2 className="theme-text-primary text-2xl font-semibold">Donation Meter</h2>
+          <p className="theme-text-secondary mt-2 text-sm">
+            Control whether the donation meter appears on the DeskCat app homepage. Hiding it
+            leaves the settings below untouched.
+          </p>
+          <form action={updateDonationMeter} className="mt-5 flex flex-wrap gap-3">
+            <button
+              type="submit"
+              name="enabled"
+              value="false"
+              disabled={!donationMeterEnabled}
+              className="theme-button-secondary theme-hover-highlight inline-flex items-center justify-center rounded-2xl border px-5 py-3 font-semibold transition disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Hide donation meter
+            </button>
+            <button
+              type="submit"
+              name="enabled"
+              value="true"
+              disabled={donationMeterEnabled}
+              className="theme-button-primary theme-hover-highlight inline-flex items-center justify-center rounded-2xl border px-5 py-3 font-semibold transition disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Show donation meter
             </button>
           </form>
         </section>
